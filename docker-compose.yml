@@ -2,15 +2,15 @@ version: '3.8'
 
 services:
   wso2is:
-    build:
-      context: .
-      dockerfile: dockerfile
+    image: wso2/wso2is:7.0.0
     ports:
       - "9443:9443"
     networks:
       - wso2-network
     volumes:
-      - ./repository/conf/deployment.toml:/app/repository/conf/deployment.toml
+      - ./repository/conf/deployment.toml:/home/wso2carbon/wso2is-7.0.0/repository/conf/deployment.toml
+      - ./repository/components/lib/postgresql-42.7.5.jar:/home/wso2carbon/wso2is-7.0.0/repository/components/lib/postgresql-42.7.5.jar
+
 
 networks:
   wso2-network:
