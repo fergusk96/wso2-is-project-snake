@@ -48,5 +48,4 @@ repository/resources/conf/.metadata/
 tmp/
 whoami.localhost-key.pem
 whoam.localhost.pem
-.gitignore
-ngrok/ngrok-secrets.yml
+./ngrok/ngrok-secrets.yml
