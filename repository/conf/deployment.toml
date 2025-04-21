@@ -16,16 +16,18 @@ type = "postgre"
 hostname = "postgres-identity-db"
 name = "postgresDB"
 username = "postgresUser"
-password = "postgresUser"
+password = "postgresPW"
 port = "5432"
 
 [database.shared_db]
 type = "postgre"
-hostname = "localhost"
-name = "testdb"
-username = "regadmin"
-password = "regadmin"
+hostname = "postgres-shared-db"
+name = "postgresDB"
+username = "postgresUser"
+password = "postgresPW"
 port = "5432"
+
+
 [keystore.primary]
 file_name = "wso2carbon.p12"
 password = "wso2carbon"
