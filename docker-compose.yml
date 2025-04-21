@@ -20,6 +20,7 @@ services:
       - ./ngrok:/etc/ngrok
     ports:
       - 4040:4040
+    
 
 networks:
   wso2-network:
