@@ -32,3 +32,17 @@ target
 repository/logs/wso2carbon.log
 
 wso2carbon.pid
+
+backup/
+repository/components/default/configuration/1745196950666.log
+repository/components/default/configuration/org.eclipse.core.runtime/
+repository/components/default/configuration/org.eclipse.equinox.app/
+repository/components/default/configuration/org.eclipse.osgi/
+repository/components/patches/
+repository/conf/api-resource-collection.xml
+repository/conf/etc/tasks-config.xml
+repository/conf/hazelcast.properties
+repository/conf/identity/schemas.xml
+repository/logs/
+repository/resources/conf/.metadata/
+tmp/
