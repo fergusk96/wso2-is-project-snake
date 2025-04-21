@@ -14,7 +14,7 @@ type = "database_unique_id"
 [database.identity_db]
 type = "postgre"
 hostname = "postgres-identity-db"
-name = "postgresDB"
+name = "postgresDB1"
 username = "postgresUser"
 password = "postgresPW"
 port = "5432"
@@ -77,3 +77,11 @@ app_password= "dashboard"
 #password= "xxxx"
 #hostname= "smtp.gmail.com"
 #port= 587
+
+
+[transport.http]
+listener_enabled = true
+port = 8080
+
+[transport.https]
+listener_enabled = false

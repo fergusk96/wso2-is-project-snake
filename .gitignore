@@ -46,3 +46,6 @@ repository/conf/identity/schemas.xml
 repository/logs/
 repository/resources/conf/.metadata/
 tmp/
+whoami.localhost-key.pem
+whoam.localhost.pem
+.gitignore

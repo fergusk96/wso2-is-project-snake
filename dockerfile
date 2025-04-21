@@ -4,8 +4,6 @@ WORKDIR /app
 
 COPY . /app
 
-RUN apt-get update && apt-get install -y iputils-ping
-
 RUN chmod +x ./bin/wso2server.sh
 
 # Expose port 9443
