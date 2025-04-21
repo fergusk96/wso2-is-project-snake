@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunk_wso2is_console=self.webpackChunk_wso2is_console||[]).push([[72082],{72082:(s,o,e)=>{e.r(o),e.d(o,{ApplicationRoles:()=>l.ApplicationRoles});var l=e(56211)}}]);

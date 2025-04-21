@@ -1,1 +1,0 @@
-"use strict";(self.webpackChunk_wso2is_console=self.webpackChunk_wso2is_console||[]).push([[72590],{72590:(s,e,n)=>{n.r(e),n.d(e,{enUs:()=>o});var o={extensions:n(71080).extensions,name:"en-US"}}}]);
