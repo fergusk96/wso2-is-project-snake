@@ -30,10 +30,7 @@
 <%@ page import="static org.wso2.carbon.identity.application.authentication.endpoint.util.Constants.ENABLE_AUTHENTICATION_WITH_REST_API" %>
 <%@ page import="static org.wso2.carbon.identity.application.authentication.endpoint.util.Constants.ERROR_WHILE_BUILDING_THE_ACCOUNT_RECOVERY_ENDPOINT_URL" %>
 <%@ page import="org.wso2.carbon.identity.captcha.util.CaptchaUtil" %>
-<%@ page import="org.wso2.carbon.CarbonConstants" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementEndpointConstants" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.AuthenticatorDataRetrievalClient" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.AuthenticatorDataRetrievalClientException" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.CommonDataRetrievalClient" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.IdentityProviderDataRetrievalClient" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.IdentityProviderDataRetrievalClientException" %>
@@ -46,18 +43,12 @@
 <%@ page import="org.apache.commons.collections.MapUtils" %>
 <%@ page import="org.owasp.encoder.Encode" %>
 <%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.AuthenticationEndpointUtil" %>
-<%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.client.model.AuthenticationRequestWrapper" %>
 <%@ taglib prefix="layout" uri="org.wso2.identity.apps.taglibs.layout.controller" %>
 
 <%@ include file="includes/localize.jsp" %>
 
 <%-- Include tenant context --%>
 <jsp:directive.include file="includes/init-url.jsp"/>
-
-<%
-    // Add the login screen to the list to retrieve text branding customizations.
-    screenNames.add("login");
-%>
 
 <%-- Branding Preferences --%>
 <jsp:directive.include file="includes/branding-preferences.jsp"/>
@@ -78,7 +69,6 @@
     private static final String GITHUB_AUTHENTICATOR = "GithubAuthenticator";
     private static final String FACEBOOK_AUTHENTICATOR = "FacebookAuthenticator";
     private static final String OIDC_AUTHENTICATOR = "OpenIDConnectAuthenticator";
-    private static final String SSO_AUTHENTICATOR_NAME = "SSO";
     private static final String MICROSOFT_IDP = "Microsoft";
     private static final String ENTERPRISE_USER_LOGIN_AUTHENTICATOR = "EnterpriseIDPAuthenticator";
     private static final String ENTERPRISE_USER_LOGIN_ORG = "EnterpriseIDP_Org";
@@ -89,10 +79,8 @@
     private static final String SMS_OTP_AUTHENTICATOR = "sms-otp-authenticator";
     private static final String EMAIL_OTP_AUTHENTICATOR = "email-otp-authenticator";
     private static final String TOTP_AUTHENTICATOR = "totp";
-    private static final String PUSH_NOTIFICATION_AUTHENTICATOR = "push-notification-authenticator";
     private static final String ENTERPRISE_LOGIN_KEY = "isEnterpriseLoginEnabled";
     private static final String ENTERPRISE_API_RELATIVE_PATH = "/api/asgardeo-enterprise-login/v1/business-user-login/";
-    private static final String CUSTOM_LOCAL_AUTHENTICATOR_PREFIX = "custom-";
 %>
 
 <%
@@ -117,44 +105,41 @@
 
 
     // Redirect to business user login page for tenanted access.
-    boolean enterpriseUserloginEnabled = false;
     if (StringUtils.equals("Console",  appName)
             && !StringUtils.equals(IdentityManagementEndpointConstants.SUPER_TENANT, userTenantDomain)
             && !StringUtils.equals(null, userTenantDomain)
             && !StringUtils.equals(userType, USER_TYPE_ASGARDEO)) {
 
+        boolean enterpriseUserloginEnabled = false;
         try {
 
             // TODO: need to use the "com.wso2.identity.asgardeo.enterprise.login.EnterpriseLoginRetrievalClient" client to retrieve value.
             // EnterpriseLoginRetrievalClient enterpriseLoginRetrievalClient = new EnterpriseLoginRetrievalClient();
             // enterpriseUserloginEnabled = enterpriseLoginRetrievalClient.isEnterpriseLoginEnabled(userTenantDomain);
 
-            if (CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME != null && CarbonConstants.ENABLE_LEGACY_AUTHZ_RUNTIME) {
-                CommonDataRetrievalClient commonDataRetrievalClient = new CommonDataRetrievalClient();
-                enterpriseUserloginEnabled = commonDataRetrievalClient.checkBooleanProperty(ENTERPRISE_API_RELATIVE_PATH + userTenantDomain,
-                                                                  null, ENTERPRISE_LOGIN_KEY, false, false);
-            }
+            CommonDataRetrievalClient commonDataRetrievalClient = new CommonDataRetrievalClient();
+            enterpriseUserloginEnabled = commonDataRetrievalClient.checkBooleanProperty(ENTERPRISE_API_RELATIVE_PATH + userTenantDomain,
+                                                              null, ENTERPRISE_LOGIN_KEY, false, false);
         } catch (Exception e) {
             // Ignored and send the default value.
         }
 
-    }
-
-    if (enterpriseUserloginEnabled) {
-        %>
-          <script type="text/javascript">
-            document.location = "<%=oauth2AuthorizeURL%>?idp=<%=ENTERPRISE_USER_LOGIN_IDP%>" +
-                    "&authenticator=<%=ENTERPRISE_USER_LOGIN_AUTHENTICATOR%>" +
-                    "&fidp=EnterpriseIDP" + "&org=<%=userTenantDomain%>" +
-                    "&code_challenge_method=<%=Encode.forUriComponent(request.getParameter("code_challenge_method"))%>" +
-                    "&code_challenge=<%=Encode.forUriComponent(request.getParameter("code_challenge"))%>" +
-                    "&response_type=<%=Encode.forUriComponent(request.getParameter("response_type"))%>" +
-                    "&client_id=<%=Encode.forUriComponent(request.getParameter("client_id"))%>" +
-                    "&scope=<%=Encode.forUriComponent(request.getParameter("scope"))%>" +
-                    "&redirect_uri=<%=Encode.forUriComponent(request.getParameter("redirect_uri"))%>" +
-                    "&response_mode=<%=Encode.forUriComponent(request.getParameter("response_mode"))%>";
-          </script>
-        <%
+        if (enterpriseUserloginEnabled) {
+            %>
+              <script type="text/javascript">
+                document.location = "<%=oauth2AuthorizeURL%>?idp=<%=ENTERPRISE_USER_LOGIN_IDP%>" +
+                        "&authenticator=<%=ENTERPRISE_USER_LOGIN_AUTHENTICATOR%>" +
+                        "&fidp=EnterpriseIDP" + "&org=<%=userTenantDomain%>" +
+                        "&code_challenge_method=<%=Encode.forUriComponent(request.getParameter("code_challenge_method"))%>" +
+                        "&code_challenge=<%=Encode.forUriComponent(request.getParameter("code_challenge"))%>" +
+                        "&response_type=<%=Encode.forUriComponent(request.getParameter("response_type"))%>" +
+                        "&client_id=<%=Encode.forUriComponent(request.getParameter("client_id"))%>" +
+                        "&scope=<%=Encode.forUriComponent(request.getParameter("scope"))%>" +
+                        "&redirect_uri=<%=Encode.forUriComponent(request.getParameter("redirect_uri"))%>" +
+                        "&response_mode=<%=Encode.forUriComponent(request.getParameter("response_mode"))%>";
+              </script>
+            <%
+        }
     }
 
     String errorMessage = "authentication.failed.please.retry";
@@ -179,14 +164,6 @@
     boolean hasLocalLoginOptions = false;
     boolean isBackChannelBasicAuth = false;
     List<String> localAuthenticatorNames = new ArrayList<String>();
-    List<String> registeredLocalAuthenticators = Arrays.asList(
-        BACKUP_CODE_AUTHENTICATOR, TOTP_AUTHENTICATOR, EMAIL_OTP_AUTHENTICATOR,
-        MAGIC_LINK_AUTHENTICATOR,SMS_OTP_AUTHENTICATOR,OPEN_ID_AUTHENTICATOR,
-        IDENTIFIER_EXECUTOR,JWT_BASIC_AUTHENTICATOR,BASIC_AUTHENTICATOR,
-        IWA_AUTHENTICATOR,X509_CERTIFICATE_AUTHENTICATOR,FIDO_AUTHENTICATOR,
-        PUSH_NOTIFICATION_AUTHENTICATOR
-   );
-
 
     if (idpAuthenticatorMapping != null && idpAuthenticatorMapping.get(Constants.RESIDENT_IDP_RESERVED_NAME) != null) {
         String authList = idpAuthenticatorMapping.get(Constants.RESIDENT_IDP_RESERVED_NAME);
@@ -219,17 +196,7 @@
 
         // Build the query string using the parameter map since the query string can contain fewer parameters
         // due to parameter filtering.
-        Map<String, String[]> queryParamMap = request.getParameterMap();
-        Map<String, Object> authParamMap = ((AuthenticationRequestWrapper) request).getAuthParams();
-
-        // Remove `waitingConfigs` auth param from the query map since `internalWait` prompt related auth params
-        // doesn't need to be added to the multi-option uri.
-        if (authParamMap != null && !authParamMap.isEmpty() && queryParamMap != null && !queryParamMap.isEmpty()) {
-            if (authParamMap.containsKey("waitingConfigs") && authParamMap.containsKey("waitingType")) {
-                queryParamMap.remove("waitingConfigs");
-            }
-        }
-        String queryParamString = AuthenticationEndpointUtil.resolveQueryString(queryParamMap);
+        String queryParamString = AuthenticationEndpointUtil.resolveQueryString(request.getParameterMap());
         multiOptionURIParam = "&multiOptionURI=" + Encode.forUriComponent(baseURL + queryParamString);
     }
 
@@ -308,12 +275,11 @@
 
     String t = request.getParameter("t");
     String ut = request.getParameter("ut");
-
     if (StringUtils.isNotBlank(t)) {
-        loginContextRequestUrl += "&t=" + Encode.forUriComponent(t);
+        loginContextRequestUrl += "&t=" + t;
     }
     if (StringUtils.isNotBlank(ut)) {
-        loginContextRequestUrl += "&ut=" + Encode.forUriComponent(ut);
+        loginContextRequestUrl += "&ut=" + ut;
     }
 
     if (StringUtils.isNotBlank(usernameIdentifier)) {
@@ -458,8 +424,7 @@
     <% } %>
 
     <%
-        boolean genericReCaptchaEnabled = CaptchaUtil.isGenericRecaptchaEnabledAuthenticator("IdentifierExecutor");
-        if (reCaptchaEnabled || reCaptchaResendEnabled || genericReCaptchaEnabled) {
+        if (reCaptchaEnabled || reCaptchaResendEnabled) {
             String reCaptchaAPI = CaptchaUtil.reCaptchaAPIURL();
     %>
         <script src='<%=(reCaptchaAPI)%>'></script>
@@ -496,7 +461,7 @@
             <% } %>
         </layout:component>
         <layout:component componentName="MainSection">
-            <div class="ui segment segment-layout">
+            <div class="ui segment">
                 <h3 class="ui header">
                     <%  if (Boolean.parseBoolean(promptAccountLinking)) { %>
                         <%=AuthenticationEndpointUtil.i18n(resourceBundle, "account.linking") %>
@@ -615,9 +580,6 @@
                                         String GOOGLE_CALLBACK_URL = "";
                                         boolean GOOGLE_ONE_TAP_ENABLED = false;
 
-                                        if ("Asgardeo Platform IDP".equals(idpName)) {
-                                            idpDisplayName = "Asgardeo";
-                                        }
                                         if (idpName.endsWith(".hub")) {
                                             isHubIdp = true;
                                             idpName = idpName.substring(0, idpName.length() - 4);
@@ -685,10 +647,6 @@
                                         if (StringUtils.startsWithIgnoreCase(idpDisplayName, EXTERNAL_CONNECTION_PREFIX)) {
                                             idpDisplayName = idpDisplayName.substring(EXTERNAL_CONNECTION_PREFIX.length());
                                         }
-                                        // If IdP name is "SSO", need to handle as special case.
-                                        if (StringUtils.equalsIgnoreCase(idpName, SSO_AUTHENTICATOR_NAME)) {
-                                            imageURL = "libs/themes/default/assets/images/identity-providers/sso.svg";
-                                        }
                             %>
                                 <% if (isHubIdp) { %>
                                     <div class="field">
@@ -712,7 +670,7 @@
                                         </div>
                                     </div>
                                     <br>
-                                <% } else if (isGoogleIdp) { %>
+                                <%} else if (isGoogleIdp) { %>
                                     <div class="social-login blurring social-dimmer">
                                         <div
                                             class="ui basic segment google-one-tap-loader"
@@ -875,10 +833,6 @@
                                             logoPath = "libs/themes/default/assets/images/identity-providers/enterprise-idp-illustration.svg";
                                         }
 
-                                        if ("Asgardeo Platform IDP".equals(idpName)) {
-                                            logoPath = "libs/themes/wso2is/assets/images/identity-providers/asgardeo.svg";
-                                        }
-
                                         if (!imageURL.isEmpty() && imageURL.contains("assets/images/logos/")) {
                                             String[] imageURLSegements = imageURL.split("/");
                                             String logoFileName = imageURLSegements[imageURLSegements.length - 1];
@@ -925,26 +879,17 @@
                                 }
                                 if (localAuthenticatorNames.contains(X509_CERTIFICATE_AUTHENTICATOR)) {
                             %>
-                            <div class="social-login blurring social-dimmer">
-                                <div class="field">
-                                    <button class="ui secondary button" onclick="handleNoDomain(this,
+                            <div class="field">
+                                <button class="ui grey labeled icon button fluid"
+                                    onclick="handleNoDomain(this,
                                         '<%=Encode.forJavaScriptAttribute(Encode.forUriComponent(idpEntry.getKey()))%>',
-                                        'x509CertificateAuthenticator')" id="icon-<%=iconId%>"
-                                        title="<%=AuthenticationEndpointUtil.i18n(resourceBundle, "sign.in.with")%> X509 Certificate"
-                                    >
-                                        <img
-                                            class="ui image"
-                                            src="libs/themes/default/assets/images/icons/x509-authenticator-icon.svg"
-                                            alt="Magic Link Logo"
-                                            role="presentation"
-                                        />
-                                        <span>
-                                            <%=AuthenticationEndpointUtil.i18n(resourceBundle, "sign.in.with")%> x509 Certificate
-                                        </span>
-                                    </button>
-                                </div>
+                                        'x509CertificateAuthenticator')"
+                                    id="icon-<%=iconId%>"
+                                    title="<%=AuthenticationEndpointUtil.i18n(resourceBundle, "sign.in.with")%> X509 Certificate">
+                                    <i class="certificate icon"></i>
+                                    <%=AuthenticationEndpointUtil.i18n(resourceBundle, "sign.in.with")%> <strong>x509 Certificate</strong>
+                                </button>
                             </div>
-                            <br />
                             <%
                                 }
                                 if (localAuthenticatorNames.contains(FIDO_AUTHENTICATOR)) {
@@ -1080,115 +1025,6 @@
                             <br>
                             <%
                                         }
-                                if (localAuthenticatorNames.contains("push-notification-authenticator")) {
-                            %>
-                                <div class="social-login blurring social-dimmer">
-                                <div class="field">
-                                        <button
-                                            type="button"
-                                            id="icon-<%=iconId%>"
-                                            class="ui button secondary"
-                                            data-testid="login-page-sign-in-with-push-notification"
-                                            onclick="handleNoDomain(this,
-                                                    '<%=Encode.forJavaScriptAttribute(Encode.forUriComponent(idpEntry.getKey()))%>',
-                                                    'push-notification-authenticator')"
-                                        >
-                                        <img
-                                            class="ui image"
-                                            src="libs/themes/default/assets/images/icons/push.svg"
-                                            alt="Push Notification Logo"
-                                            role="presentation">
-                                        <span>
-                                            <%=AuthenticationEndpointUtil.i18n(resourceBundle, "sign.in.with")%>
-                                            <%=AuthenticationEndpointUtil.i18n(resourceBundle, "push.notification")%>
-                                        </span>
-                                    </button>
-                                </div>
-                            </div>
-                            <br>
-                            <%
-                                        }
-                                for (String localAuthenticator : localAuthenticatorNames) {
-                                    if (registeredLocalAuthenticators.contains(localAuthenticator)) {
-                                        continue;
-                                    }
-
-                                    if (localAuthenticator.startsWith(CUSTOM_LOCAL_AUTHENTICATOR_PREFIX)) {
-                                       
-                                        String customLocalAuthenticatorImageURL = "libs/themes/default/assets/images/authenticators/custom-authenticator.svg";
-                                        String customLocalAuthenticatorDisplayName = localAuthenticator;
-                                        Map<String, String> authenticatorConfigMap = new HashMap<>();
-                                        try {
-                                            AuthenticatorDataRetrievalClient authenticatorDataRetrievalClient = new AuthenticatorDataRetrievalClient();
-                                            authenticatorConfigMap = authenticatorDataRetrievalClient.getAuthenticatorConfig(tenantDomain, localAuthenticator);
-                                        } catch (AuthenticatorDataRetrievalClientException e) {
-                                            // Exception is ignored and the default values will be used as a fallback.
-                                        }
-
-                                        if (MapUtils.isNotEmpty(authenticatorConfigMap) && authenticatorConfigMap.containsKey("definedBy") 
-                                            && authenticatorConfigMap.get("definedBy").equals("USER")) {
-                                            
-                                            if (authenticatorConfigMap.containsKey("image")) {
-                                                customLocalAuthenticatorImageURL = authenticatorConfigMap.get("image");
-                                            }
-                                            customLocalAuthenticatorDisplayName = authenticatorConfigMap.get("displayName");
-                            %>
-                                <div class="social-login blurring social-dimmer">
-                                    <div class="field">
-                                            <button
-                                                type="button"
-                                                id="icon-<%=iconId%>"
-                                                class="ui button secondary"
-                                                data-testid="login-page-sign-in-with-<%=Encode.forHtmlAttribute(localAuthenticator)%>"
-                                                onclick="handleNoDomain(this,
-                                                        '<%=Encode.forJavaScriptAttribute(Encode.forUriComponent(idpEntry.getKey()))%>',
-                                                        '<%=Encode.forJavaScriptAttribute(Encode.forUriComponent(localAuthenticator))%>')"
-                                            >
-                                            <img
-                                                class="ui image"
-                                                src="<%=Encode.forHtmlAttribute(customLocalAuthenticatorImageURL)%>"
-                                                alt="<%=Encode.forHtmlAttribute(localAuthenticator)%> Logo"
-                                                role="presentation">
-                                            <span>
-                                                <%=AuthenticationEndpointUtil.i18n(resourceBundle, "sign.in.with")%>
-                                                <%=Encode.forHtmlAttribute(customLocalAuthenticatorDisplayName)%>
-                                            </span>
-                                            </button>
-                                    </div>
-                                </div>
-                            <br>
-                            <br>
-                            <%
-                                            continue;   
-                                        } 
-                                    }
-                            %>
-                                <div class="social-login blurring social-dimmer">
-                                    <div class="field">
-                                            <button
-                                                type="button"
-                                                id="icon-<%=iconId%>"
-                                                class="ui button secondary"
-                                                data-testid="login-page-sign-in-with-<%=localAuthenticator%>"
-                                                onclick="handleNoDomain(this,
-                                                        '<%=Encode.forJavaScriptAttribute(Encode.forUriComponent(idpEntry.getKey()))%>',
-                                                        '<%=localAuthenticator%>')"
-                                            >
-                                            <img
-                                                class="ui image"
-                                                src="libs/themes/default/assets/images/authenticators/<%=localAuthenticator%>.svg"
-                                                alt="<%=localAuthenticator%> Logo"
-                                                role="presentation">
-                                            <span>
-                                                <%=AuthenticationEndpointUtil.i18n(resourceBundle, "sign.in.with")%>
-                                                <%=localAuthenticator%>
-                                            </span>
-                                            </button>
-                                    </div>
-                            </div>
-                            <br>
-                            <%
-                                }
                                     }
                                 }
                                 if (isOrgEnterpriseUserLogin) { %>
@@ -1364,12 +1200,6 @@
     <script src="util/string-utils.js"></script>
 
     <script>
-
-        <% if (Boolean.parseBoolean(request.getParameter("isSelfRegistration"))) { %>
-                $(".ui.segment").hide();
-                window.location = "<%=getRegistrationUrl(accountRegistrationEndpointContextURL, srURLEncodedURL, (String) request.getAttribute(JAVAX_SERVLET_FORWARD_QUERY_STRING))%>";
-        <% } %>
-
         function onMoment(notification) {
             displayGoogleSignIn(notification.isNotDisplayed() || notification.isSkippedMoment());
 

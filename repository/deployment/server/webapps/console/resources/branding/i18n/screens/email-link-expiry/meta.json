@@ -1,7 +1,0 @@
-{
-  "email.link.expiry.message": {
-    "EDITABLE": true,
-    "SCREEN": "email-link-expiry",
-    "MULTI_LINE": false
-  }
-}

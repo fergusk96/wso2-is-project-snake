@@ -1,5 +1,5 @@
 <%--
-  ~ Copyright (c) 2019-2024, WSO2 LLC. (https://www.wso2.com).
+  ~ Copyright (c) 2019-2023, WSO2 LLC. (https://www.wso2.com).
   ~
   ~ WSO2 LLC. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -22,14 +22,14 @@
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Arrays" %>
 
-<%-- Localization --%>
-<jsp:directive.include file="localize.jsp" />
-
 <%-- Include tenant context --%>
 <jsp:directive.include file="../tenant-resolve.jsp"/>
 
 <%-- Branding Preferences --%>
 <jsp:directive.include file="branding-preferences.jsp"/>
+
+<%-- Localization --%>
+<jsp:directive.include file="localize.jsp" />
 
 <%-- Cookie Consent Banner --%>
 <%
@@ -57,10 +57,15 @@
                         <span class="copyright-text line-break"><%= copyright %></span>
                     <% } %>
                     <%
+                        if (StringUtils.isNotBlank(copyright) && !shouldRemoveDefaultBranding) {
+                    %>
+                        <div class="powered-by-logo-divider">|</div>
+                    <% } %>
+                    <%
                         if (!shouldRemoveDefaultBranding) {
                     %>
-                    <div class="powered-by-logo-divider">|</div><%= i18n(recoveryResourceBundle, customText, "powered.by") %> <div class="powered-by-logo" onclick="window.open('<%= StringEscapeUtils.escapeHtml4(productURL) %>', '_self', 'noopener,noreferrer,resizable')">
-                        <img width="80" height="20" src="<%= StringEscapeUtils.escapeHtml4(poweredByLogoURL) %>" alt="<%= StringEscapeUtils.escapeHtml4(logoAlt) %>" />
+                    <div class="powered-by-logo-divider">|</div>Powered by <div class="powered-by-logo" onclick="window.open('<%= StringEscapeUtils.escapeHtml4(productURL) %>', '_self', 'noopener,noreferrer,resizable')">
+                        <img width="80" height="20" src="<%= StringEscapeUtils.escapeHtml4(productLogoURL) %>" alt="<%= StringEscapeUtils.escapeHtml4(logoAlt) %>" />
                     </div>
                     <% } %>
                 </a>

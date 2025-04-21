@@ -1,5 +1,5 @@
 <%--
-  ~ Copyright (c) 2016-2024, WSO2 LLC. (https://www.wso2.com).
+  ~ Copyright (c) 2016-2023, WSO2 LLC. (https://www.wso2.com).
   ~
   ~ WSO2 LLC. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -18,13 +18,12 @@
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 
-<%@ page import="java.io.File" %>
-<%@ page import="java.util.*" %>
 <%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page import="org.owasp.encoder.Encode" %>
-<%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.AuthenticationEndpointUtil" %>
 <%@ page import="org.wso2.carbon.identity.captcha.util.CaptchaUtil" %>
-<%@ page import="org.wso2.carbon.identity.core.util.IdentityTenantUtil" %>
+<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementEndpointConstants" %>
+<%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.AuthenticationEndpointUtil" %>
+<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementServiceUtil" %>
 <%@ page import="org.wso2.carbon.identity.core.util.IdentityUtil" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.ApplicationDataRetrievalClient" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.ApplicationDataRetrievalClientException" %>
@@ -34,12 +33,10 @@
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.User" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.PreferenceRetrievalClient" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.PreferenceRetrievalClientException" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementEndpointConstants" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementEndpointUtil" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementServiceUtil" %>
-<%@ page import="org.wso2.carbon.utils.multitenancy.MultitenantUtils" %>
-<%@ page import="static org.wso2.carbon.identity.core.util.IdentityUtil.isEmailUsernameEnabled" %>
-
+<%@ page import="org.wso2.carbon.identity.core.util.IdentityTenantUtil" %>
+<%@ page import="java.io.File" %>
+<%@ page import="java.util.*" %>
 <%@ taglib prefix="layout" uri="org.wso2.identity.apps.taglibs.layout.controller" %>
 
 <%-- Localization --%>
@@ -48,11 +45,6 @@
 <%-- Include tenant context --%>
 <jsp:directive.include file="tenant-resolve.jsp"/>
 
-<%
-    // Add the password-recovery screen to the list to retrieve text branding customizations.
-    screenNames.add("password-recovery");
-%>
-
 <%-- Branding Preferences --%>
 <jsp:directive.include file="includes/branding-preferences.jsp"/>
 
@@ -60,26 +52,13 @@
 <jsp:directive.include file="includes/username-label-resolver.jsp"/>
 
 <%
-    final String SMSOTP = "SMSOTP";
-    final String EMAIL = "EMAIL";
-    final String SECURITY_QUESTIONS = "SECURITY_QUESTIONS";
     boolean error = IdentityManagementEndpointUtil.getBooleanValue(request.getAttribute("error"));
     String errorMsg = IdentityManagementEndpointUtil.getStringValue(request.getAttribute("errorMsg"));
-    boolean isTenantQualifiedUsername = Boolean.parseBoolean(request.getParameter("isTenantQualifiedUsername"));
     String username = StringUtils.isNotEmpty(request.getParameter("username"))
         ? Encode.forHtmlAttribute(request.getParameter("username"))
         : "";
-    if (isTenantQualifiedUsername) {
-        tenantDomain = MultitenantUtils.getTenantDomain(username);
-        username = MultitenantUtils.getTenantAwareUsername(username);
-    }
     boolean isSaaSApp = Boolean.parseBoolean(request.getParameter("isSaaSApp"));
-    String selectedOption= EMAIL;
-    if (SMSOTP.equalsIgnoreCase(request.getParameter("selectedOption"))) {
-        selectedOption = SMSOTP;
-    }
     String sp = Encode.forJava(request.getParameter("sp"));
-    String spId = Encode.forJava(request.getParameter("spId"));
 
     if (StringUtils.isBlank(tenantDomain)) {
         tenantDomain = IdentityManagementEndpointConstants.SUPER_TENANT;
@@ -143,18 +122,14 @@
     }
 
     Boolean isQuestionBasedPasswordRecoveryEnabledByTenant = false;
-    Boolean isSMSRecoveryAvailable = false;
-    Boolean isEmailLinkBasedPasswordRecoveryEnabledByTenant = false;
+    Boolean isNotificationBasedPasswordRecoveryEnabledByTenant = false;
     Boolean isMultiAttributeLoginEnabledInTenant = false;
     String allowedAttributes = null;
     try {
         PreferenceRetrievalClient preferenceRetrievalClient = new PreferenceRetrievalClient();
-        isQuestionBasedPasswordRecoveryEnabledByTenant =
-            preferenceRetrievalClient.checkQuestionBasedPasswordRecovery(tenantDomain) &&
-            Boolean.parseBoolean(IdentityUtil.getProperty("Connectors.ChallengeQuestions.Enabled"));
-        isEmailLinkBasedPasswordRecoveryEnabledByTenant =
-            preferenceRetrievalClient.checkEmailLinkBasedPasswordRecovery(tenantDomain);
-        isSMSRecoveryAvailable = preferenceRetrievalClient.checkSMSOTPBasedPasswordRecovery(tenantDomain);
+        isQuestionBasedPasswordRecoveryEnabledByTenant = preferenceRetrievalClient.checkQuestionBasedPasswordRecovery(tenantDomain) &&
+                                                     Boolean.parseBoolean(IdentityUtil.getProperty("Connectors.ChallengeQuestions.Enabled"));
+        isNotificationBasedPasswordRecoveryEnabledByTenant = preferenceRetrievalClient.checkNotificationBasedPasswordRecovery(tenantDomain);
         isMultiAttributeLoginEnabledInTenant = preferenceRetrievalClient.checkMultiAttributeLogin(tenantDomain);
         allowedAttributes = preferenceRetrievalClient.checkMultiAttributeLoginProperty(tenantDomain);
     } catch (PreferenceRetrievalClientException e) {
@@ -168,20 +143,11 @@
         request.getRequestDispatcher("error.jsp").forward(request, response);
         return;
     }
-    Boolean isEmailRecoveryAvailable = isEmailNotificationEnabled && isEmailLinkBasedPasswordRecoveryEnabledByTenant;
 
-    String emailUsernameEnable = application.getInitParameter("EnableEmailUserName");
-    Boolean isEmailUsernameEnabled = false;
     String usernameLabel = "Username";
-    String usernamePlaceHolder = "Enter.your.username.here";
-
-    if (StringUtils.isNotBlank(emailUsernameEnable) && Boolean.parseBoolean(emailUsernameEnable)) {
-        usernameLabel = "email.username";
-        usernamePlaceHolder = "enter.your.email";
-    } else if (isMultiAttributeLoginEnabledInTenant) {
+    if (isMultiAttributeLoginEnabledInTenant) {
         if (allowedAttributes != null) {
             usernameLabel = getUsernameLabel(recoveryResourceBundle, allowedAttributes);
-            usernamePlaceHolder = "Enter.your.identifier";
         }
     }
 %>
@@ -218,8 +184,7 @@
     %>
 </head>
 <body class="login-portal layout recovery-layout">
-    <layout:main layoutName="<%= layout %>" layoutFileRelativePath="<%= layoutFileRelativePath %>"
-        data="<%= layoutData %>" >
+    <layout:main layoutName="<%= layout %>" layoutFileRelativePath="<%= layoutFileRelativePath %>" data="<%= layoutData %>" >
         <layout:component componentName="ProductHeader">
             <%-- product-title --%>
             <%
@@ -255,19 +220,21 @@
                         }
                         %>
                         <%
-                        if (StringUtils.isNotEmpty(username) && !error) {
+                            if (StringUtils.isNotEmpty(username) && !error) {
                         %>
-                        <div class="field mb-5">
-                            <%=i18n(recoveryResourceBundle, customText, "password.recovery.body")%>
-                        </div>
                         <div class="field">
-                            <label for="username">
-                                <%=i18n(recoveryResourceBundle, customText, usernameLabel) %>
+                            <%
+                               if (isEmailNotificationEnabled && isNotificationBasedPasswordRecoveryEnabledByTenant
+                                                    && !isQuestionBasedPasswordRecoveryEnabledByTenant) {
+
+                            %>
+                            <label class="mb-5 line-break" for="username">
+                                <%=i18n(recoveryResourceBundle, customText, "password.recovery.body")%>
                             </label>
+                            <% }  %>
                             <div class="ui fluid left icon input">
                                 <input
-                                    placeholder="<%=AuthenticationEndpointUtil.i18n(
-                                        recoveryResourceBundle, usernamePlaceHolder)%>"
+                                    placeholder="<%=AuthenticationEndpointUtil.i18n(recoveryResourceBundle, "Username.email")%>"
                                     id="usernameUserInput"
                                     name="usernameUserInput"
                                     value="<%=Encode.forHtmlAttribute(username)%>"
@@ -275,14 +242,13 @@
                                     tabindex="0"
                                     required
                                 >
-                                <i aria-hidden="true" class="user fill icon"></i>
+                                <i aria-hidden="true" class="envelope outline icon"></i>
                             </div>
                             <input id="username" name="username" type="hidden">
                             <%
                                 if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
                             %>
-                            <input id="tenantDomain" name="tenantDomain"
-                                value="<%= Encode.forHtmlAttribute(tenantDomain) %>" type="hidden">
+                            <input id="tenantDomain" name="tenantDomain" value="<%= Encode.forHtmlAttribute(tenantDomain) %>" type="hidden">
                             <%
                                 }
                             %>
@@ -291,23 +257,29 @@
                         <%
                         } else {
                         %>
-                        <div class="field mb-5">
-                            <%=i18n(recoveryResourceBundle, customText, "password.recovery.body")%>
-                        </div>
+
                         <div class="field">
-                            <label for="username">
-                                <%=i18n(recoveryResourceBundle, customText, usernameLabel) %>
-                            </label>
+                            <%
+                                if (isEmailNotificationEnabled && isNotificationBasedPasswordRecoveryEnabledByTenant
+                                                               && !isQuestionBasedPasswordRecoveryEnabledByTenant) {
+                           %>
+                           <label class="mb-5 line-break" for="username">
+                               <%=i18n(recoveryResourceBundle, customText, "password.recovery.body")%>
+                           </label>
+                           <% } %>
                             <div class="ui fluid left icon input">
-                                <% String identifierPlaceholder=i18n(recoveryResourceBundle, customText,
-                                    "password.recovery.identifier.input.placeholder" , "" , false); %>
-                                <% if (StringUtils.isNotBlank(identifierPlaceholder)) { %>
-                                    <input placeholder="<%=identifierPlaceholder%>" id="usernameUserInput"
-                                        name="usernameUserInput" type="text" tabindex="0" required>
+                                <% if (isMultiAttributeLoginEnabledInTenant) { %>
+                                    <input
+                                        placeholder="<%=usernameLabel%>"
+                                        id="usernameUserInput"
+                                        name="usernameUserInput"
+                                        type="text"
+                                        tabindex="0"
+                                        required
+                                    >
                                 <% } else { %>
                                     <input
-                                        placeholder="<%=AuthenticationEndpointUtil.i18n(
-                                            recoveryResourceBundle, usernamePlaceHolder)%>"
+                                        placeholder="<%=AuthenticationEndpointUtil.i18n(recoveryResourceBundle, usernameLabel)%>"
                                         id="usernameUserInput"
                                         name="usernameUserInput"
                                         type="text"
@@ -315,14 +287,13 @@
                                         required
                                     >
                                 <% } %>
-                                <i aria-hidden="true" class="user fill icon"></i>
+                                <i aria-hidden="true" class="user outline icon"></i>
                             </div>
                             <input id="username" name="username" type="hidden">
                             <%
                                 if (!IdentityTenantUtil.isTenantQualifiedUrlsEnabled()) {
                             %>
-                            <input id="tenantDomain" name="tenantDomain"
-                                value="<%= Encode.forHtmlAttribute(tenantDomain) %>" type="hidden">
+                            <input id="tenantDomain" name="tenantDomain" value="<%= Encode.forHtmlAttribute(tenantDomain) %>" type="hidden">
                             <%
                                 }
                             %>
@@ -340,69 +311,30 @@
                         </div>
 
                         <%
-                            Boolean multipleRecoveryOptionsAvailable =
-                                (isEmailRecoveryAvailable && isSMSRecoveryAvailable)
-                                || (isEmailRecoveryAvailable && isQuestionBasedPasswordRecoveryEnabledByTenant)
-                                || (isSMSRecoveryAvailable && isQuestionBasedPasswordRecoveryEnabledByTenant);
-                            if (multipleRecoveryOptionsAvailable) {
+                            if (isEmailNotificationEnabled && isNotificationBasedPasswordRecoveryEnabledByTenant
+                                                    && isQuestionBasedPasswordRecoveryEnabledByTenant ) {
                         %>
-                        <div class="segment" style="text-align: left;"
-                            data-testid="password-recovery-page-multi-option-radio">
-                            <%
-                                if (isEmailRecoveryAvailable) {
-                            %>
+                        <div class="ui secondary segment" style="text-align: left;">
                             <div class="field">
                                 <div class="ui radio checkbox">
-                                    <input type="radio" name="recoveryOption" value="<%=EMAIL%>"
-                                        <%=EMAIL.equals(selectedOption)?"checked":""%>/>
-                                    <label><%=i18n(recoveryResourceBundle, customText, "send.email.link")%>
+                                    <input type="radio" name="recoveryOption" value="EMAIL" checked/>
+                                    <label><%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Recover.with.mail")%>
                                     </label>
                                 </div>
                             </div>
-                            <%
-                                }
-                                if (isSMSRecoveryAvailable) {
-                            %>
                             <div class="field">
                                 <div class="ui radio checkbox">
-                                    <input type="radio" name="recoveryOption" value="<%=SMSOTP%>"
-                                        <%=SMSOTP.equals(selectedOption)?"checked":""%>/>
-                                    <label><%=i18n(recoveryResourceBundle, customText, "send.code.via.sms")%>
-                                </div>
-                            </div>
-                            <%
-                                }
-                                if (isQuestionBasedPasswordRecoveryEnabledByTenant) {
-                            %>
-                            <div class="field">
-                                <div class="ui radio checkbox">
-                                    <input type="radio" name="recoveryOption" value="<%=SECURITY_QUESTIONS%>"
-                                        <%=SECURITY_QUESTIONS.equals(selectedOption)?"checked":""%>/>
-                                    <label>
-                                        <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle,
-                                            "Recover.with.question")%>
+                                    <input type="radio" name="recoveryOption" value="SECURITY_QUESTIONS"/>
+                                    <label><%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Recover.with.question")%>
                                     </label>
                                 </div>
                             </div>
-                            <%
-                                }
-                            %>
                         </div>
-                        <% } else if (isEmailRecoveryAvailable){ %>
-                            <input type="hidden" name="recoveryOption" value="<%=EMAIL%>"/>
-                        <% } else if (isSMSRecoveryAvailable){ %>
-                            <input type="hidden" name="recoveryOption" value="<%=SMSOTP%>"/>
+                        <% } else if (isNotificationBasedPasswordRecoveryEnabledByTenant){ %>
+                            <input type="hidden" name="recoveryOption" value="EMAIL"/>
                         <% } else { %>
-                            <input type="hidden" name="recoveryOption" value="<%=SECURITY_QUESTIONS%>"/>
+                            <input type="hidden" name="recoveryOption" value="SECURITY_QUESTIONS"/>
                         <% } %>
-
-                        <input type="hidden" name="recoveryStage" value="INITIATE"/>
-                        <input type="hidden" name="channel" value=""/>
-                        <input type="hidden" name="sp" value="<%=sp %>"/>
-                        <input type="hidden" name="spId" value="<%=spId %>"/>
-                        <input type="hidden" name="urlQuery" value="<%=request.getQueryString() %>"/>
-                        <input type="hidden" name="isMultiRecoveryOptionsAvailable"
-                            value="<%=multipleRecoveryOptionsAvailable %>"/>
 
                         <%
                             String callback = request.getParameter("callback");
@@ -418,7 +350,7 @@
                             if (sessionDataKey != null) {
                         %>
                             <input type="hidden" name="sessionDataKey"
-                                value="<%=Encode.forHtmlAttribute(sessionDataKey) %>"/>
+                                   value="<%=Encode.forHtmlAttribute(sessionDataKey) %>"/>
                         <%
                             }
                         %>
@@ -427,7 +359,7 @@
                             if (isSaaSApp && StringUtils.isNotBlank(userTenant)) {
                         %>
                             <input type="hidden" name="t"
-                                value="<%=Encode.forHtmlAttribute(userTenant) %>"/>
+                                   value="<%=Encode.forHtmlAttribute(userTenant) %>"/>
                         <%
                             }
                         %>
@@ -442,18 +374,30 @@
                         %>
                         <div class="mt-4">
                             <%
-                                String submitButtoni18nText =
-                                    multipleRecoveryOptionsAvailable? "password.recovery.button.multi" :
-                                    ( isEmailRecoveryAvailable? "password.recovery.button.email.link" :
-                                    ( isQuestionBasedPasswordRecoveryEnabledByTenant? "Recover.with.question" :
-                                    ( isSMSRecoveryAvailable ? "password.recovery.button.smsotp" :
-                                    "Submit")));
+                               if (isEmailNotificationEnabled && isNotificationBasedPasswordRecoveryEnabledByTenant
+                                                    && !isQuestionBasedPasswordRecoveryEnabledByTenant) {
+
                             %>
-                            <button id="recoverySubmit"
-                                    class="ui primary button large fluid"
-                                    type="submit">
-                                    <%=i18n(recoveryResourceBundle, customText, submitButtoni18nText)%>
-                            </button>
+                                <button id="recoverySubmit"
+                                        class="ui primary button large fluid"
+                                        type="submit">
+                                    <%=i18n(recoveryResourceBundle, customText, "password.recovery.button")%>
+                                </button>
+                            <% } else if (!isNotificationBasedPasswordRecoveryEnabledByTenant
+                                                   && isQuestionBasedPasswordRecoveryEnabledByTenant) { %>
+                               <button id="recoverySubmit"
+                                       class="ui primary button large fluid"
+                                       type="submit">
+                                       <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Recover.with.question")%>
+                               </button>
+                            <% } else  if (isEmailNotificationEnabled && isNotificationBasedPasswordRecoveryEnabledByTenant
+                                                                && isQuestionBasedPasswordRecoveryEnabledByTenant){ %>
+                               <button id="recoverySubmit"
+                                       class="ui primary button large fluid"
+                                       type="submit">
+                                       <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Submit")%>
+                               </button>
+                            <% } %>
                         </div>
                         <div class="mt-1 align-center">
                             <a href="javascript:goBack()" class="ui button secondary large fluid">
@@ -526,13 +470,13 @@
             const submitButton = $("#recoverySubmit");
             submitButton.addClass("loading").attr("disabled", true);
 
-            if (!validateForm()) {
+        	if (!validateForm()) {
                 submitButton.removeClass("loading").attr("disabled", false);
 
                 return false;
-            }
+        	}
 
-            return true;
+        	return true;
         }
 
         function validateForm() {
@@ -565,9 +509,7 @@
                         "Please.enter.valid.email")%>";
             const emptyUsernameErrorMsg = "<%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle,
                         "Please.enter.your.username")%>";
-            const emptyUserIdentifierMsg = "<%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle,
-                        "Please.enter.your.identifier")%>";
-            let errorMsgContent = document.getElementById("error-message");
+	        let errorMsgContent = document.getElementById("error-message");
 
             let userName = document.getElementById("username");
             const usernameUserInput = document.getElementById("usernameUserInput");
@@ -576,8 +518,7 @@
             }
 
             if ($("#username").val() === "") {
-                errorMsgContent.innerHTML =
-                    <%=isMultiAttributeLoginEnabledInTenant? "emptyUserIdentifierMsg" : "emptyUsernameErrorMsg"%>;
+                errorMsgContent.innerHTML = emptyUsernameErrorMsg;
                 errorMessage.show();
                 submitBtnState( { disabled: true } );
 
@@ -588,7 +529,7 @@
             <%
             if (StringUtils.equals(tenantDomain, IdentityManagementEndpointConstants.SUPER_TENANT)) {
             %>
-                emailRegex = /^(?=.{3,50}$)[\u00C0-\u00FFA-Za-z0-9_-]+(\.[\u00C0-\u00FFA-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*(\.[A-Za-z]{2,10})$/;
+            emailRegex = /^(?=.{3,50}$)[\u00C0-\u00FFA-Za-z0-9_-]+(\.[\u00C0-\u00FFA-Za-z0-9_-]+)*@[^-][A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*(\.[A-Za-z]{2,10})$/;
             <%
             }
             %>

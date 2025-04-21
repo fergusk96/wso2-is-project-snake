@@ -467,7 +467,6 @@ org.owasp.csrfguard.domainOrigin = {{owasp.csrfguard.domain_origin}}
 
 # please remove the below entry to enable protection for services.
 org.owasp.csrfguard.unprotected.Services=%servletContext%/services/*
-org.owasp.csrfguard.unprotected.carbonLogin=%servletContext%/carbon/admin/login_action.jsp
 org.owasp.csrfguard.unprotected.commonauth=%servletContext%/commonauth/*
 org.owasp.csrfguard.unprotected.samlsso=%servletContext%/samlsso/*
 org.owasp.csrfguard.unprotected.authenticationendpoint=%servletContext%/authenticationendpoint/*
@@ -483,7 +482,6 @@ org.owasp.csrfguard.unprotected.oauthiwa=%servletContext%/commonauth/iwa/*
 org.owasp.csrfguard.unprotected.thrift=%servletContext%/thriftAuthenticator/*
 org.owasp.csrfguard.unprotected.mex=%servletContext%/mexut/*
 org.owasp.csrfguard.unprotected.identity=%servletContext%/identity/*
-org.owasp.csrfguard.unprotected.pushAuth=%servletContext%/push-auth/*
 {% for unprotected_service in owasp.csrfguard.unprotected.service %}
 org.owasp.csrfguard.unprotected.{{unprotected_service.name}}={{unprotected_service.service}}
 {% endfor %}

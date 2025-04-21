@@ -1,5 +1,5 @@
 <%--
-  ~ Copyright (c) 2023-2024, WSO2 LLC. (https://www.wso2.com).
+  ~ Copyright (c) 2023, WSO2 LLC. (https://www.wso2.com).
   ~
   ~ WSO2 LLC. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -29,10 +29,7 @@
 <%@ page import="javax.servlet.http.HttpServletRequest" %>
 <%@ page import="java.util.*" %>
 
-<%--
-    TODO: UNIFICATION TASK: This block should be moved to a `locale-code-resolver.jsp` file. And used in `localize` as well.
-    Tracked By: https://github.com/wso2/product-is/issues/20372
---%>
+<%-- TODO: UNIFICATION TASK: This block should be moved to a `locale-code-resolver.jsp` file. And used in `localize` as well. --%>
 <%!
     /**
     * Get the user's preferred locale based on the request, cookies, and URL parameters.
@@ -229,15 +226,12 @@
     Map<String, Object> layoutData = new HashMap<String, Object>();
     String productName = "WSO2 Identity Server";
     String productURL = "https://wso2.com/identity-server";
-    String productLogoURL = "libs/themes/wso2is/assets/images/branding/logo-full.svg";
+    String productLogoURL = "libs/themes/wso2is/assets/images/branding/logo.svg";
     String productLogoAlt = "WSO2 Identity Server Logo";
-    String productWhiteLogoURL = "libs/themes/wso2is/assets/images/branding/logo-full-inverted.svg";
-    String poweredByLogoURL = "";
+    String productWhiteLogoURL = "libs/themes/wso2is/assets/images/branding/logo-white.svg";
     String productWhiteLogoAlt = "WSO2 Identity Server Logo White Variation";
     boolean enableDefaultPreLoader = true;
-
-    final String BRANDING_PREFERENCE_CACHE_KEY = "BrandingPreferenceCache";
-    final String BRANDING_TEXT_PREFERENCE_CACHE_KEY = "BrandingTextPreferenceCache";
+    String[] screenNames = {"common", "login", "email-otp", "sms-otp", "email-otp", "totp"};
 
     // Constants used to create full custom layout name
     String PREFIX_FOR_CUSTOM_LAYOUT_NAME = "custom";
@@ -411,7 +405,6 @@
     String DEFAULT_RESOURCE_LOCALE = "en-US";
     String ORG_PREFERENCE_RESOURCE_TYPE = "ORG";
     String APP_PREFERENCE_RESOURCE_TYPE = "APP";
-    String RESOURCE_TYPE = "type";
     String preferenceResourceType = ORG_PREFERENCE_RESOURCE_TYPE;
     String tenantRequestingPreferences = tenantForTheming;
     String applicationRequestingPreferences = spAppId;
@@ -425,22 +418,11 @@
         }
 
         BrandingPreferenceRetrievalClient brandingPreferenceRetrievalClient = new BrandingPreferenceRetrievalClient();
-        JSONObject brandingPreferenceResponse = null;
-        Object cachedBrandingPreferenceResponse = request.getAttribute(BRANDING_PREFERENCE_CACHE_KEY);
-        if (cachedBrandingPreferenceResponse != null && cachedBrandingPreferenceResponse instanceof BrandingPreferenceRetrievalClientException) {
-            throw (BrandingPreferenceRetrievalClientException) cachedBrandingPreferenceResponse;
-        } else {
-            brandingPreferenceResponse = (JSONObject) cachedBrandingPreferenceResponse;
-        }
-        if (brandingPreferenceResponse == null) {
-            brandingPreferenceResponse = brandingPreferenceRetrievalClient.getPreference(tenantRequestingPreferences,
+        JSONObject brandingPreferenceResponse = brandingPreferenceRetrievalClient.getPreference(tenantRequestingPreferences,
                 preferenceResourceType, applicationRequestingPreferences, DEFAULT_RESOURCE_LOCALE);
-            request.setAttribute(BRANDING_PREFERENCE_CACHE_KEY, brandingPreferenceResponse);
-        }
 
         if (brandingPreferenceResponse.has(PREFERENCE_KEY)) {
             brandingPreference = brandingPreferenceResponse.getJSONObject(PREFERENCE_KEY);
-            preferenceResourceType = brandingPreferenceResponse.getString(RESOURCE_TYPE);
         }
 
 %>
@@ -462,20 +444,13 @@
             if (isBrandingEnabledInTenantPreferences) {
                 // Custom Text
                 for (String screenName : screenNames) {
-                    StringBuilder textBrandingCacheKey = new StringBuilder(BRANDING_TEXT_PREFERENCE_CACHE_KEY);
-                    textBrandingCacheKey.append("-");
-                    textBrandingCacheKey.append(screenName);
-                    JSONObject customTextPreferenceResponse = (JSONObject) request.getAttribute(textBrandingCacheKey.toString());
-                    if (customTextPreferenceResponse == null) {
-                        customTextPreferenceResponse = brandingPreferenceRetrievalClient.getCustomTextPreference(
-                            tenantRequestingPreferences,
-                            preferenceResourceType,
-                            applicationRequestingPreferences,
-                            screenName,
-                            locale
-                        );
-                        request.setAttribute(textBrandingCacheKey.toString(), customTextPreferenceResponse);
-                    }
+                    JSONObject customTextPreferenceResponse = brandingPreferenceRetrievalClient.getCustomTextPreference(
+                        tenantRequestingPreferences,
+                        preferenceResourceType,
+                        applicationRequestingPreferences,
+                        screenName,
+                        locale
+                    );
 
                     // Merge the preferences for the current screen into the customText object
                     if (customTextPreferenceResponse.has(PREFERENCE_KEY)) {
@@ -665,7 +640,6 @@
     } catch (BrandingPreferenceRetrievalClientException e) {
         // Exception is ignored and the variable will use the fallbacks.
         // TODO: Move the duplicated logic to a common place.
-        request.setAttribute(BRANDING_PREFERENCE_CACHE_KEY, e);
     } finally {
 
         // Set fallbacks.
@@ -676,17 +650,6 @@
                 logoURL = productWhiteLogoURL;
             } else {
                 logoURL = productLogoURL;
-            }
-        }
-
-        // Set powered by logo URL.
-        if (StringUtils.isEmpty(poweredByLogoURL)) {
-            if (StringUtils.isEmpty(activeThemeName)) {
-                poweredByLogoURL = productLogoURL;
-            } else if (StringUtils.equalsIgnoreCase(activeThemeName, "DARK")) {
-                poweredByLogoURL = productWhiteLogoURL;
-            } else {
-                poweredByLogoURL = productLogoURL;
             }
         }
 

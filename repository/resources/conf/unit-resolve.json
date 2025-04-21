@@ -82,6 +82,12 @@
     "authentication.adaptive.execution_supervisor.timeout": "ms",
     "output_adapter.jms.keep_alive_time": "ms",
     "identity_mgt.events.schemes.\u0027account.lock.handler\u0027.properties.Time": "m",
-    "identity_mgt.events.schemes.\u0027suspension.notification\u0027.properties.\u0027account.disable.delay\u0027": "d"
+    "identity_mgt.events.schemes.\u0027suspension.notification\u0027.properties.\u0027account.disable.delay\u0027": "d",
+    "identity.entitlement.policy_point.pdp.default_caching_interval": "s",
+    "identity.entitlement.policy_point.pdp.caching.decision_caching.caching_interval": "s",
+    "identity.entitlement.policy_point.pdp.caching.attribute_caching.caching_interval": "s",
+    "identity.entitlement.policy_point.pdp.caching.resource_caching.caching_interval": "s",
+    "identity.entitlement.policy_point.pdp.caching.policy_caching.caching_interval": "s",
+    "identity.entitlement.entitlement_engine_caching_interval": "s"
   }
 }

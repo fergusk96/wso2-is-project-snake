@@ -33,7 +33,7 @@
 <jsp:directive.include file="../includes/branding-preferences.jsp"/>
 
 <%
-    String status = IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "error.504");
+    String stat = IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "error.504");
 %>
 
 <%-- Data for the layout from the page --%>
@@ -71,7 +71,7 @@
         <layout:component componentName="MainSection" >
             <div class="ui orange attached segment mt-3">
                 <h3 class="ui header text-center slogan-message mt-3 mb-2" data-testid="recovery-portal-error-504-page-header">
-                    <%=Encode.forHtml(status)%>
+                    <%=Encode.forHtml(stat)%>
                 </h3>
             </div>
             <div class="ui bottom attached warning message">

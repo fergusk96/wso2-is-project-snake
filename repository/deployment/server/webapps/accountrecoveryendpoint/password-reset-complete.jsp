@@ -1,5 +1,5 @@
 <%--
-  ~ Copyright (c) 2016-2024, WSO2 LLC. (https://www.wso2.com).
+  ~ Copyright (c) 2016-2023, WSO2 LLC. (https://www.wso2.com).
   ~
   ~ WSO2 LLC. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -17,7 +17,6 @@
 --%>
 
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<%@ page import="org.apache.commons.collections.map.HashedMap" %>
 <%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page import="org.apache.http.client.utils.URIBuilder" %>
 <%@ page import="org.owasp.encoder.Encode" %>
@@ -28,12 +27,9 @@
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.ApplicationDataRetrievalClient" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.ApplicationDataRetrievalClientException" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.api.NotificationApi" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.api.RecoveryApiV2" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.PreferenceRetrievalClient" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.Error" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.Property" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.recovery.v2.ResetRequest" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.recovery.v2.ResetResponse" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.ResetPasswordRequest" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.User" %>
 <%@ page import="org.wso2.carbon.identity.core.util.IdentityTenantUtil" %>
@@ -44,7 +40,6 @@
 <%@ page import="java.util.HashMap" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.Map" %>
-<%@ page import="org.wso2.carbon.identity.core.util.IdentityUtil" %>
 <%@ page import="javax.servlet.http.Cookie" %>
 <%@ page import="java.util.Base64" %>
 <%@ page import="org.wso2.carbon.core.util.SignatureUtil" %>
@@ -66,7 +61,7 @@
     String ERROR_CODE = "errorCode";
     String PASSWORD_RESET_PAGE = "password-reset.jsp";
     String AUTO_LOGIN_COOKIE_NAME = "ALOR";
-    String AUTO_LOGIN_FLOW_TYPE = "ACCOUNT_RECOVERY";
+    String AUTO_LOGIN_FLOW_TYPE = "RECOVERY";
     String AUTO_LOGIN_COOKIE_DOMAIN = "AutoLoginCookieDomain";
     String USERSTORE_DOMAIN = "userstoredomain";
     String RECOVERY_TYPE_INVITE = "invite";
@@ -80,21 +75,14 @@
             IdentityManagementEndpointUtil.getStringValue(request.getSession().getAttribute("confirmationKey"));
     String newPassword = request.getParameter("reset-password");
     String callback = request.getParameter("callback");
-    String spId = Encode.forJava(request.getParameter("spId"));
-    if (StringUtils.isBlank(spId)) {
-        spId = (String)request.getAttribute("spId");
-    }
+    String spId = request.getParameter("spId");
     String sp = Encode.forJava(request.getParameter("sp"));
-    if (StringUtils.isBlank(sp)) {
-        sp = (String)request.getAttribute("sp");
-    }
     String userStoreDomain = request.getParameter(USERSTORE_DOMAIN);
-    String type = Encode.forJava(request.getParameter("type"));
-    String orgId = request.getParameter("orgid");
+    String type = request.getParameter("type");
     String username = null;
     String tenantAwareUsername = null;
     String applicationName = null;
-    boolean useRecoveryV2API = Boolean.parseBoolean((String)request.getAttribute("useRecoveryV2API"));
+
     String tenantDomainFromQuery = request.getParameter("tenantDomainFromQuery");
     if (StringUtils.isNotBlank(tenantDomainFromQuery)) {
         tenantDomain = tenantDomainFromQuery;
@@ -127,16 +115,6 @@
         }
     }
 
-    Boolean appEnabledStatus = false;
-
-    // Temporary fix for application name not retrieving from the applicationDataRetrievalClient.
-    if (StringUtils.isBlank(applicationName) || applicationName.equals("null")) {
-        // If application name is not available, fallback to My Account application.
-        appEnabledStatus = applicationDataRetrieval.getApplicationEnabledStatus(tenantDomain, MY_ACCOUNT_APP_NAME);
-    } else {
-        appEnabledStatus = applicationDataRetrieval.getApplicationEnabledStatus(tenantDomain, applicationName);
-    }
-
     // Retrieve application access url to redirect user back to the application.
     String applicationAccessURLWithoutEncoding = null;
     if (StringUtils.isNotBlank(applicationName)) {
@@ -145,39 +123,12 @@
                     applicationName);
             applicationAccessURLWithoutEncoding = IdentityManagementEndpointUtil.replaceUserTenantHintPlaceholder(
                     applicationAccessURLWithoutEncoding, userTenantDomain);
-            applicationAccessURLWithoutEncoding = IdentityManagementEndpointUtil.getOrganizationIdHintReplacedURL(
-                    applicationAccessURLWithoutEncoding, orgId);
         } catch (ApplicationDataRetrievalClientException e) {
             // Ignored and fallback to login page url.
         }
     }
 
-    if (StringUtils.isNotBlank(newPassword) && useRecoveryV2API) {
-
-        RecoveryApiV2 recoveryApiV2 = new RecoveryApiV2();
-        String resetCode = request.getParameter("resetCode");
-        String flowConfirmationCode = request.getParameter("flowConfirmationCode");
-
-        try {
-            Map<String, String> requestHeaders = new HashedMap();
-            if (request.getParameter("g-recaptcha-response") != null) {
-                requestHeaders.put("g-recaptcha-response", request.getParameter("g-recaptcha-response"));
-            }
-            ResetRequest resetRequest = new ResetRequest();
-            // For local notification channels flowConfirmationCode is used as confirmation code
-            resetRequest.setResetCode(resetCode);
-            resetRequest.setFlowConfirmationCode(flowConfirmationCode);
-            resetRequest.setPassword(request.getParameter("reset-password"));
-            ResetResponse resetResponse = recoveryApiV2.resetUserPassword(resetRequest, tenantDomain, requestHeaders);
-        } catch (ApiException e) {
-            if (!StringUtils.isBlank(username)) {
-                request.setAttribute("username", username);
-            }
-            IdentityManagementEndpointUtil.addErrorInformation(request, e);
-            request.getRequestDispatcher("error.jsp").forward(request, response);
-            return;
-        }
-    } else if (StringUtils.isNotBlank(newPassword)) {
+    if (StringUtils.isNotBlank(newPassword)) {
         NotificationApi notificationApi = new NotificationApi();
         ResetPasswordRequest resetPasswordRequest = new ResetPasswordRequest();
         List<Property> properties = new ArrayList<Property>();
@@ -227,7 +178,7 @@
 
                 JSONObject cookieValueInJson = new JSONObject();
                 cookieValueInJson.put("content", content);
-                String signature = Base64.getEncoder().encodeToString(IdentityUtil.signWithTenantKey(content, tenantDomain));
+                String signature = Base64.getEncoder().encodeToString(SignatureUtil.doSignature(content));
                 cookieValueInJson.put("signature", signature);
                 String cookieValue = Base64.getEncoder().encodeToString(cookieValueInJson.toString().getBytes());
 
@@ -332,16 +283,14 @@
                         <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "successfully.set.a.password")%>.
                         <br/>
                         <br/>
-                        <% if (appEnabledStatus) { %>
-                            <% if (StringUtils.isNotBlank(applicationName) && applicationName.equals(MY_ACCOUNT_APP_NAME)) {%>
-                                <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "manage.profile.via")%>
-                                <a href="<%=IdentityManagementEndpointUtil.getURLEncodedCallback(
-                                    applicationAccessURLWithoutEncoding)%>"><%=MY_ACCOUNT_APP_NAME%></a>.
-                            <% } else { %>
-                                <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "can.sign.in.to")%>
-                                <a href="<%=IdentityManagementEndpointUtil.getURLEncodedCallback(
-                                    applicationAccessURLWithoutEncoding)%>"><%=APPLICATION%></a>.
-                            <% } %>
+                        <% if (StringUtils.isNotBlank(applicationName) && applicationName.equals(MY_ACCOUNT_APP_NAME)) {%>
+                            <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "manage.profile.via")%>
+                            <a href="<%=IdentityManagementEndpointUtil.getURLEncodedCallback(
+                                applicationAccessURLWithoutEncoding)%>"><%=MY_ACCOUNT_APP_NAME%></a>.
+                        <% } else { %>
+                            <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "can.sign.in.to")%>
+                            <a href="<%=IdentityManagementEndpointUtil.getURLEncodedCallback(
+                                applicationAccessURLWithoutEncoding)%>"><%=APPLICATION%></a>.
                         <% } %>
                     <% } else { %>
                         <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "successfully.set.a.password.you.can.sign.in.now")%>.

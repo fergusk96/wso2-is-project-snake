@@ -425,14 +425,6 @@
         <Secret>{{encryption.key}}</Secret>
         {% endif %}
 
-        {% if encryption.enable_key_id is defined %}
-        <EnableKeyId>{{encryption.enable_key_id}}</EnableKeyId>
-        {% endif %}
-
-        {% if encryption.old_key is defined %}
-        <OldSecret>{{encryption.old_key}}</OldSecret>
-        {% endif %}
-
         {% if encryption.totpKey is defined %}
         <TotpSecret>{{encryption.totpKey}}</TotpSecret>
         {% endif %}
@@ -501,6 +493,7 @@
             <Type>{{keystore.tenant.type}}</Type>
         </TenantKeyStore>
 
+
         <!--
             The KeyStore which is used for encrypting/decrypting internal data.
             This block is read by Carbon Crypto Service.
@@ -533,25 +526,6 @@
             <!-- Private Key password-->
             <KeyPassword>{{keystore.saml.key_password}}</KeyPassword>
         </SAMLSignKeyStore>
-        {% if keystore.custom is defined %}
-
-        <CustomKeyStores>
-            {% for keystore in keystore.custom %}
-            <KeyStore>
-                <!-- Keystore file location-->
-                <Location>${carbon.home}/repository/resources/security/{{keystore.file_name}}</Location>
-                <!-- Keystore type (JKS/PKCS12 etc.)-->
-                <Type>{{keystore.type}}</Type>
-                <!-- Keystore password-->
-                <Password>{{keystore.password}}</Password>
-                <!-- Private Key alias-->
-                <KeyAlias>{{keystore.alias}}</KeyAlias>
-                <!-- Private Key password-->
-                <KeyPassword>{{keystore.key_password}}</KeyPassword>
-            </KeyStore>
-            {% endfor %}
-        </CustomKeyStores>
-        {% endif %}
 
         <UserStorePasswordEncryption>{{keystore.userstore_password_encryption}}</UserStorePasswordEncryption>
 
@@ -634,9 +608,6 @@
 {% for item in server.hide_menu_items %}
 <HideMenuItemId>{{item}}</HideMenuItemId>
 {% endfor %}
-{% if identity.entitlement.policy_point.pap.store_metadata is defined and identity.entitlement.policy_point.pap.store_metadata == 'false' %}
-<HideMenuItemId>policy_search_menu</HideMenuItemId>
-{% endif %}
 </HideMenuItemIds>
 
     <!--
@@ -769,12 +740,6 @@
     <!-- Enable accessing Admin Console via HTTP -->
     <!-- EnableHTTPAdminConsole>true</EnableHTTPAdminConsole -->
 
-    <!-- Enable resolving absolute URLs for Admin Console -->
-    <AdminConsole>
-        <ResolveAbsoluteURLs>
-            <Enable>{{admin_console.resolve_absolute_urls.enable}}</Enable>
-        </ResolveAbsoluteURLs>
-    </AdminConsole>
     <!--
        Default Feature Repository of WSO2 Carbon.
     -->
@@ -861,27 +826,4 @@
 
     <!-- Enable/Disable the deprecation banner in the management console -->
     <ManagementConsoleDeprecationBannerEnabled>{{management_console_deprecation_banner.enable}}</ManagementConsoleDeprecationBannerEnabled>
-
-    <!-- Enable/Disable circuit breaker for userstores to ensure backward compatibility -->
-    <UserStore>
-        <enableCircuitBreakerForUserStores>{{user_store_commons.enable_circuit_breaker_for_user_stores}}</enableCircuitBreakerForUserStores>
-        <maxConnectionRetryCount>{{user_store_commons.max_connection_retry_count}}</maxConnectionRetryCount>
-        <minConnectionRetryDelayInMilliSeconds>{{user_store_commons.min_connection_retry_delay_in_milli_seconds}}</minConnectionRetryDelayInMilliSeconds>
-    </UserStore>
-
-    <KeyStoreDataPersistenceManager>
-        <!--
-            This section provide the ability to configure the storage type for the keystores that used to store data in the
-            registry in IS 7.0.0 or earlier.
-
-            Applicable values:
-                - "database" - Data will be store in tables in the specified tables in the identity database.
-                - "hybrid"   - Any new changes stored in "database" and any existing data read from "registry" allowing data to
-                                on-demand migrate.
-                Default value is "database".
-        -->
-        <DataStorageType>{{data_storage_type.keystores}}</DataStorageType>
-        <!-- Include a data source name from the set of data sources defined in master-datasources.xml -->
-        <DataSourceName>{{keystore.datasource}}</DataSourceName>
-    </KeyStoreDataPersistenceManager>
 </Server>

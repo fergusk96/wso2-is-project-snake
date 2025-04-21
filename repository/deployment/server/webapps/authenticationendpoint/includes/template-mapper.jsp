@@ -19,5 +19,4 @@
     templateMap.put("startAccountLink", "templates/startAccountLink.jsp");
     templateMap.put("finishAccountLink", "templates/finishAccountLink.jsp");
     templateMap.put("externalRedirect", "templates/externalRedirect.jsp");
-    templateMap.put("internalWait", "templates/internalWait.jsp");
 %>

@@ -8,8 +8,6 @@
 -->
 
 <%@ page language="java" contentType="text/html; charset=ISO-8859-1" pageEncoding="ISO-8859-1"%>
-<%@ page import="org.wso2.carbon.base.ServerConfiguration" %>
-<%@ page import="static org.wso2.carbon.identity.core.util.IdentityCoreConstants.PROXY_CONTEXT_PATH" %>
 <%@ page import="static org.wso2.carbon.identity.core.util.IdentityUtil.getServerURL" %>
 <%@ page import="org.owasp.encoder.Encode" %>
 
@@ -170,7 +168,6 @@
     </head>
     <script>
 
-        var proxyContextPathGlobal = "<%=ServerConfiguration.getInstance().getFirstProperty(PROXY_CONTEXT_PATH)%>";
         var userAccessedPath = window.location.href;
         var applicationDomain = window.location.origin;
 
@@ -202,30 +199,32 @@
                     return "";
                 }
 
-                function getTenantPath(tenantDomain) {
-                    var _tenantDomain = tenantDomain ? tenantDomain : getTenantName();
-
-                    return _tenantDomain !== ""
-                        ? "/" + startupConfig.tenantPrefix + "/" + _tenantDomain
+                function getTenantPath() {
+                    return getTenantName() !== ""
+                        ? "/" + startupConfig.tenantPrefix + "/" + getTenantName()
                         : "";
                 };
 
                 function getApiPath(path) {
+                    if (startupConfig.legacyAuthzRuntime) {
+                        if (path) {
+                            return serverOrigin + path;
+                        }
+
+                        return serverOrigin;
+                    }
+
                     var tenantDomain = getTenantName();
 
                     if (!tenantDomain) {
-                        if (startupConfig.superTenantProxy) {
-                            tenantDomain = startupConfig.superTenantProxy;
-                        } else {
-                            tenantDomain = startupConfig.superTenant;
-                        }
+                        tenantDomain = startupConfig.superTenant;
                     }
 
                     if (path) {
-                        return serverOrigin + getTenantPath(tenantDomain) + path;
+                        return serverOrigin + getTenantPath() + path;
                     }
 
-                    return serverOrigin + getTenantPath(tenantDomain);
+                    return serverOrigin + getTenantPath();
                 }
 
                 /**
@@ -263,15 +262,12 @@
                  * @returns {string} Contructed URL.
                  */
                 function signInRedirectURL() {
-                    // When there's no proxy context path, the IS server returns "null".
-                    var contextPath = (!proxyContextPathGlobal || proxyContextPathGlobal === "null") ? "" : "/" + proxyContextPathGlobal;
-
                     if (getTenantName() === startupConfig.superTenant) {
-                        return applicationDomain.replace(/\/+$/, '') + contextPath
+                        return applicationDomain.replace(/\/+$/, '')
                             + "/console";
                     }
 
-                    return applicationDomain.replace(/\/+$/, '') + contextPath + getTenantPath()
+                    return applicationDomain.replace(/\/+$/, '') + getTenantPath()
                         + "/console";
                 }
 
@@ -296,6 +292,10 @@
                  * @returns {string} Contructed auth params.
                  */
                 function getAuthParamsForOrganizationLogins(orginalParams) {
+                    if (startupConfig.legacyAuthzRuntime) {
+                        return orginalParams;
+                    }
+
                     var authParams = Object.assign({}, orginalParams);
 
                     if (getOrganizationPath()) {
@@ -314,21 +314,6 @@
                     }
 
                     return authParams;
-                }
-
-                /**
-                 * Retrieves the super tenant.
-                 * If a super tenant proxy is defined in the startup configuration, it is returned;
-                 * otherwise, the super tenant directly from the startup configuration is returned.
-                 *
-                 * @returns {string} The super tenant.
-                 */
-                function getSuperTenant() {
-                    if (startupConfig.superTenantProxy) {
-                        return startupConfig.superTenantProxy;
-                    }
-
-                    startupConfig.superTenant;
                 }
 
                 var auth = AsgardeoAuth.AsgardeoSPAClient.getInstance();
@@ -351,6 +336,17 @@
                         tokenRevocationEndpointURL: undefined
                     },
                     enablePKCE: true
+                }
+
+                if (startupConfig.legacyAuthzRuntime) {
+                    authConfig.signInRedirectURL = applicationDomain.replace(/\/+$/, '') + getOrganizationPath()
+                        + "/console";
+                    authConfig.signOutRedirectURL = applicationDomain.replace(/\/+$/, '') + getOrganizationPath();
+                    authConfig.endpoints.authorizationEndpoint = getApiPath(userTenant
+                            ? "/" + startupConfig.tenantPrefix + "/" + startupConfig.superTenantProxy + startupConfig.pathExtension + "/oauth2/authorize" + "?ut="+userTenant.replace(/\/+$/, '') + (utype ? "&utype="+ utype : '')
+                            : "/" + startupConfig.tenantPrefix + "/" + startupConfig.superTenantProxy + startupConfig.pathExtension + "/oauth2/authorize");
+                    authConfig.logoutEndpointURL = getApiPath("/" + startupConfig.tenantPrefix + "/" + startupConfig.superTenantProxy + startupConfig.pathExtension + "/oidc/logout");
+                    authConfig.oidcSessionIFrameEndpointURL = getApiPath("/" + startupConfig.tenantPrefix + "/" + startupConfig.superTenantProxy + startupConfig.pathExtension + "/oidc/checksession");
                 }
 
                 var isSilentSignInDisabled = userAccessedPath.includes("disable_silent_sign_in");
@@ -390,7 +386,7 @@
     <script>
         if(!authorizationCode) {
             var authSPAJS = document.createElement("script");
-            var authScriptSrc = "/console/auth-spa-3.1.2.min.js";
+            var authScriptSrc = "/console/auth-spa-3.0.1.min.js";
 
             authSPAJS.setAttribute("src", authScriptSrc);
             authSPAJS.setAttribute("async", "false");

@@ -28,17 +28,11 @@
 <%@ include file="includes/localize.jsp" %>
 <jsp:directive.include file="includes/init-url.jsp"/>
 
-<%
-    // Add the totp screen to the list to retrieve text branding customizations.
-    screenNames.add("totp");
-%>
-
 <%-- Branding Preferences --%>
 <jsp:directive.include file="includes/branding-preferences.jsp"/>
 
 <%!
     private boolean isMultiAuthAvailable(String multiOptionURI) {
-
         boolean isMultiAuthAvailable = true;
         if (multiOptionURI == null || multiOptionURI.equals("null")) {
             isMultiAuthAvailable = false;
@@ -50,7 +44,7 @@
                 String authenticators = multiOptionURI.substring(authenticatorIndex + 15);
                 int authLastIndex = authenticators.indexOf("&") != -1 ? authenticators.indexOf("&") : authenticators.length();
                 authenticators = authenticators.substring(0, authLastIndex);
-                List<String> authList = Arrays.asList(authenticators.split("%3B"));
+                List<String> authList = new ArrayList<>(Arrays.asList(authenticators.split("%3B")));
                 if (authList.size() < 2) {
                     isMultiAuthAvailable = false;
                 }
@@ -320,7 +314,7 @@
                                 <% } else {
                                     String multiOptionURI = request.getParameter("multiOptionURI");
                                     if (multiOptionURI != null &&
-                                        AuthenticationEndpointUtil.isValidMultiOptionURI(multiOptionURI) &&
+                                        AuthenticationEndpointUtil.isValidURL(multiOptionURI) &&
                                         isMultiAuthAvailable(multiOptionURI)) {
                                 %>
                                     <a class="ui primary basic button link-button" id="goBackLink"

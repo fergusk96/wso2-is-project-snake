@@ -249,7 +249,7 @@
                             <div class="text-center mt-1">
                                 <% String multiOptionURI = request.getParameter("multiOptionURI");
                                     if (multiOptionURI != null &&
-                                        AuthenticationEndpointUtil.isValidMultiOptionURI(multiOptionURI)) {
+                                        AuthenticationEndpointUtil.isValidURL(multiOptionURI)) {
                                 %>
                                     <a
                                         onclick="window.location.href='<%=Encode.forHtmlAttribute(multiOptionURI)%>';"

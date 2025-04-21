@@ -24,7 +24,6 @@
 <%@ page import="org.owasp.encoder.Encode" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementEndpointUtil" %>
 <%@ page import="org.wso2.carbon.identity.recovery.IdentityRecoveryConstants" %>
-<%@ page import="org.wso2.carbon.identity.mgt.constants.SelfRegistrationStatusCodes" %>
 <%@ page import="org.wso2.carbon.identity.recovery.util.Utils" %>
 <%@ page import="java.io.File" %>
 <%@ page import="java.net.URISyntaxException" %>
@@ -37,11 +36,6 @@
 
 <%-- Include tenant context --%>
 <jsp:directive.include file="tenant-resolve.jsp"/>
-
-<%
-    // Add the email-link-expiry screen to the list to retrieve text branding customizations.
-    screenNames.add("email-link-expiry");
-%>
 
 <%-- Branding Preferences --%>
 <jsp:directive.include file="includes/branding-preferences.jsp"/>
@@ -130,73 +124,13 @@
                         if (IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_INVALID_CODE.getCode()
                                 .equals(errorCode)) {
                     %>
-                        <%=i18n(recoveryResourceBundle, customText, "email.link.expiry.message")%>
+                        <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Invalid.reset.link")%>
                     <%
                         } else if (IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_EXPIRED_CODE.getCode()
                                 .equals(errorCode)) {
                     %>
-                        <%=i18n(recoveryResourceBundle, customText, "email.link.expiry.message")%>
-                    <% } else  if (IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_LOCKED_ACCOUNT.getCode()
-                        .equals(errorCode)) {
-                        String[] splitErrorMsg = errorMsg.split("-");
-                        String username = splitErrorMsg[1].trim();
-                        String finalMessage = i18n(recoveryResourceBundle, customText, "user.account.locked") + (" - ") + username;
-                    %>
-                        <%=finalMessage%>
-                    <% } else if (IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_PENDING_SELF_REGISTERED_ACCOUNT.getCode().equals(errorCode)) {
-                        String[] splitErrorMsg = errorMsg.split("-");
-                        String username = splitErrorMsg[1].trim();
-                        String finalMessage = i18n(recoveryResourceBundle, customText, "pending.user.account.verification") + (" - ") + username;
-                    %>
-                        <%=finalMessage%>
-                    <% } else if ( SelfRegistrationStatusCodes.ERROR_CODE_DUPLICATE_CLAIM_VALUE.equals(errorCode)) {
-                        String[] splitErrorMsg = errorMsg.split("for");
-                        String[] attributeList = splitErrorMsg[1].split("are|is")[0].trim().split(",");
-                        String attributeString = " ";
-                        String finalMessage = "";
-                        for (int i = 0; i < attributeList.length; i++) {
-                            attributeString = attributeString + IdentityManagementEndpointUtil.i18nBase64(recoveryResourceBundle, attributeList[i].trim());
-
-                            if (i < attributeList.length - 1) {
-                                attributeString = attributeString + (", ");
-                            } else {
-                                attributeString = attributeString + (" ");
-                            }
-                        }
-
-                        if (errorMsg.contains("is")) {
-                            finalMessage = new StringBuilder()
-                                .append(i18n(recoveryResourceBundle, customText, "values.defined.for"))
-                                .append(attributeString)
-                                .append(i18n(recoveryResourceBundle, customText, "are.already.used.by.different.users"))
-                                .toString();
-                        }   else {
-                            finalMessage = new StringBuilder()
-                                .append(i18n(recoveryResourceBundle, customText, "values.defined.for"))
-                                .append(attributeString)
-                                .append(i18n(recoveryResourceBundle, customText, "are.already.used.by.different.users"))
-                                .toString();
-                        }
-                    %>
-                        <%=finalMessage%>
-                    <% } else if (IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_DISABLED_ACCOUNT.getCode().equals(errorCode)) {
-                        String[] splitErrorMsg = errorMsg.split(" ");
-                        String username = splitErrorMsg[4].trim();
-                        String finalMessage = i18n(recoveryResourceBundle, customText, "user.account.disabled") + (" ") + username;
-                    %>
-                        <%=finalMessage%>
-                    <% } else if (IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_INVALID_USER.getCode().equals(errorCode)) {
-                        String[] splitErrorMsg = errorMsg.split(" ");
-                        String username = splitErrorMsg[2].trim();
-                        String finalMessage = i18n(recoveryResourceBundle, customText, "invalid.user") + (" ") + username;
-                    %>
-                        <%=finalMessage%>
-                    <%
-                    } else if (IdentityRecoveryConstants.ErrorMessages.ERROR_CODE_UNEXPECTED.getCode().equals(errorCode)) {
-                    %>
-                        <%=i18n(recoveryResourceBundle, customText, "internal.server.error")%>
-                    <%
-                    } else { %>
+                        <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Invalid.reset.link")%>
+                    <% } else { %>
                         <%=IdentityManagementEndpointUtil.i18nBase64(recoveryResourceBundle, errorMsg)%>
                     <% } %>
                 </h3>
@@ -208,16 +142,20 @@
                         <span class="orange-text-color button"><%= StringEscapeUtils.escapeHtml4(supportEmail) %>
                         </span>
                     </a>
-                <%
-                    if (config.getServletContext().getResource("extensions/error-tracking-reference.jsp") != null) {
-                %>
+                    <%
+                        if (config.getServletContext().getResource("extensions/error-tracking-reference.jsp") != null) {
+                    %>
                             <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "with.tracking.reference.below")%>
-                </p>
-                <div class="ui divider hidden"></div>
-                <jsp:include page="extensions/error-tracking-reference.jsp"/>
-                <% } else { %>
-                </p>
-                <% } %>
+                        </p>
+                        <div class="ui divider hidden"></div>
+                        <jsp:include page="extensions/error-tracking-reference.jsp"/>
+                    <%
+                        } else {
+                    %>
+                        </p>
+                    <%
+                        }
+                    %>
                 <div class="ui divider hidden"></div>
                 <% if (isValidCallback) { %>
                 <div id="action-buttons" class="buttons">
@@ -274,7 +212,7 @@
             // Check if the error is related to the confirmation code being invalid.
             // If so, navigate the users to the URL defined in `callback` URL param.
             if (errorCodeFromParams === invalidConfirmationErrorCode) {
-                window.location.href = "<%=Encode.forJavaScript(callback)%>";
+                window.location.href = "<%=Encode.forHtmlAttribute(callback)%>";
 
                 return;
             }

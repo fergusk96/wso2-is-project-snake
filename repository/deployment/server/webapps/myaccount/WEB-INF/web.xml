@@ -19,11 +19,6 @@
 
     <display-name>myaccount</display-name>
 
-    <mime-mapping>
-        <extension>json</extension>
-        <mime-type>application/json</mime-type>
-    </mime-mapping>
-
     <error-page>
         <error-code>404</error-code>
         <location>/index.jsp</location>
@@ -81,7 +76,7 @@
 
     <servlet-mapping>
         <servlet-name>default</servlet-name>
-        <url-pattern>/auth-spa-3.1.2.min.js</url-pattern>
+        <url-pattern>/auth-spa-3.0.1.min.js</url-pattern>
     </servlet-mapping>
 
     <servlet-mapping>

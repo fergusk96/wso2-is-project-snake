@@ -1,9 +1,5 @@
 {
   "password.recovery.heading": "Esqueceu a senha?",
-  "password.recovery.body": "Estamos protegendo você. Digite seu nome de usuário para começar a redefinir sua senha.",
-  "password.recovery.identifier.input.placeholder": "Nome de usuário",
-  "password.recovery.button.email.link": "Enviar link de redefinição",
-  "password.recovery.button.smsotp": "Enviar codigo sms",
-  "send.email.link": "Enviar link de redefinição por e-mail",
-  "send.code.via.sms": "Enviar código por SMS"
+  "password.recovery.body": "Não se preocupe, isso acontece. Enviaremos um e-mail para redefinir sua senha.",
+  "password.recovery.button": "Enviar link de redefinição"
 }

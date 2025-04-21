@@ -58,8 +58,7 @@
       "user_store.properties.SCIMEnabled": true,
       "user_store.properties.UserRolesCacheEnabled": true,
       "user_store.properties.ConnectionRetryDelay": "2m",
-      "user_store.properties.CaseInsensitiveUsername": true,
-      "user_store.properties.ListServicePrincipalEntities": false
+      "user_store.properties.CaseInsensitiveUsername": true
     },
     "read_only_ldap_unique_id": {
       "user_store.properties.UsernameJavaRegEx": "[a-zA-Z0-9._\\-|//]{3,50}$",
@@ -91,8 +90,7 @@
       "user_store.properties.GroupIDEnabled": true,
       "user_store.properties.GroupIdAttribute": "entryUUID",
       "user_store.properties.GroupLastModifiedDateAttribute": "modifyTimestamp",
-      "user_store.properties.GroupCreatedDateAttribute": "createTimestamp",
-      "user_store.properties.ListServicePrincipalEntities": false
+      "user_store.properties.GroupCreatedDateAttribute": "createTimestamp"
     },
     "read_write_ldap": {
       "user_store.properties.UsernameJavaRegEx": "[a-zA-Z0-9._\\-|//]{3,50}$",
@@ -126,8 +124,7 @@
       "user_store.properties.StartTLSEnabled": false,
       "user_store.properties.UserRolesCacheEnabled": true,
       "user_store.properties.ConnectionRetryDelay": "2m",
-      "user_store.properties.CaseInsensitiveUsername": true,
-      "user_store.properties.ListServicePrincipalEntities": false
+      "user_store.properties.CaseInsensitiveUsername": true
     },
     "read_write_ldap_unique_id": {
       "user_store.properties.UsernameJavaRegEx": "[a-zA-Z0-9._\\-|//]{3,50}$",
@@ -167,8 +164,7 @@
       "user_store.properties.GroupIDEnabled": true,
       "user_store.properties.GroupIdAttribute": "entryUUID",
       "user_store.properties.GroupLastModifiedDateAttribute": "modifyTimestamp",
-      "user_store.properties.GroupCreatedDateAttribute": "createTimestamp",
-      "user_store.properties.ListServicePrincipalEntities": false
+      "user_store.properties.GroupCreatedDateAttribute": "createTimestamp"
     },
     "active_directory": {
       "user_store.properties.UsernameJavaRegEx": "[a-zA-Z0-9._\\-|//]{3,50}$",
@@ -207,8 +203,7 @@
       "user_store.properties.SCIMEnabled": false,
       "user_store.properties.UserRolesCacheEnabled": true,
       "user_store.properties.ConnectionRetryDelay": "2m",
-      "user_store.properties.CaseInsensitiveUsername": true,
-      "user_store.properties.ListServicePrincipalEntities": false
+      "user_store.properties.CaseInsensitiveUsername": true
     },
     "active_directory_unique_id": {
       "user_store.properties.UsernameJavaRegEx": "[a-zA-Z0-9._\\-|//]{3,50}$",
@@ -255,8 +250,7 @@
       "user_store.properties.GroupIDEnabled": true,
       "user_store.properties.GroupIdAttribute": "objectGUID",
       "user_store.properties.GroupLastModifiedDateAttribute": "whenCreated",
-      "user_store.properties.GroupCreatedDateAttribute": "whenChanged",
-      "user_store.properties.ListServicePrincipalEntities": false
+      "user_store.properties.GroupCreatedDateAttribute": "whenChanged"
     }
   },
   "authenticationendpoint.enable_url_parameter_filtering": {
@@ -290,10 +284,7 @@
         "scope_menu",
         "identity_admin_advisory_banner_menu",
         "server-roles-mgt_menu",
-        "logging_config_menu",
-        "multitenancy_menu",
-        "resource_browser_menu",
-        "identity_entitlement_menu"
+        "logging_config_menu"
       ]
     }
   },
@@ -583,26 +574,6 @@
           ]
         }
       ]
-    },
-    "legacy_scim2_core": {
-      "schemas.remove_from_default_schema": [
-        {
-          "id": "urn:ietf:params:scim:schemas:core:2.0:User",
-          "attributes": [
-            "urn:ietf:params:scim:schemas:core:2.0:User:phoneNumbers.pager",
-            "urn:ietf:params:scim:schemas:core:2.0:User:phoneNumbers.fax"
-          ]
-        }
-      ],
-      "schemas.add_to_default_schema": [
-        {
-          "id": "urn:ietf:params:scim:schemas:core:2.0",
-          "attributes": [
-            "urn:ietf:params:scim:schemas:core:2.0:User:phoneNumbers.pager",
-            "urn:ietf:params:scim:schemas:core:2.0:User:phoneNumbers.fax"
-          ]
-        }
-      ]
     }
   },
   "server.legacy_mode": {
@@ -636,9 +607,17 @@
       "event.default_listener.mutual_tls_authenticator.priority": 158.0,
       "idp_role_management.return_manually_added_local_roles": false,
       "oauth.revoked_token_headers_in_response.enable": true,
-      "console.ui.legacy_mode.applicationListSystemApps": false,
+      "console.ui.legacy_mode.apiResources": false,
+      "console.ui.legacy_mode.applicationListSystemApps": true,
+      "console.ui.legacy_mode.applicationOIDCSubjectIdentifier": true,
+      "console.ui.legacy_mode.applicationRequestPathAuthentication": true,
       "console.ui.legacy_mode.applicationSystemAppsSettings": true,
-      "console.ui.legacy_mode.roleMapping": false
+      "console.ui.legacy_mode.approvals": true,
+      "console.ui.legacy_mode.certificates": true,
+      "console.ui.legacy_mode.loginAndRegistrationEmailDomainDiscovery": true,
+      "console.ui.legacy_mode.organizations": false,
+      "console.ui.legacy_mode.saasApplications": true,
+      "console.ui.legacy_mode.consoleFeatureScopeCheck": false
     }
   },
   "scim2.primary_authentication_scheme": {

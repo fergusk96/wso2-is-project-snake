@@ -7,8 +7,6 @@
 ~    You may not alter or remove any copyright or other notice from copies of this content."
 -->
 
-<%@ page import="org.wso2.carbon.base.ServerConfiguration" %>
-<%@ page import="static org.wso2.carbon.identity.core.util.IdentityCoreConstants.PROXY_CONTEXT_PATH" %>
 <%@ page import="static org.wso2.carbon.identity.core.util.IdentityUtil.getServerURL" %>
 <%@ page import="static org.wso2.carbon.utils.multitenancy.MultitenantConstants.TENANT_AWARE_URL_PREFIX"%>
 <%@ page import="static org.wso2.carbon.utils.multitenancy.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME"%>
@@ -34,7 +32,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
         <meta name="referrer" content="no-referrer" />
 
-        <link href="/console/libs/themes/wso2is/theme.431fb876.min.css" rel="stylesheet" type="text/css"/>
+        <link href="/console/libs/themes/wso2is/theme.89d6b53f.min.css" rel="stylesheet" type="text/css"/>
         <link rel="shortcut icon" href="/console/libs/themes/wso2is/assets/images/branding/favicon.ico" />
 
         <% if ((Boolean.TRUE.toString()).equals(is_cookiepro_enabled)) { %>
@@ -147,7 +145,6 @@
         <script>
             var contextPathGlobal = "/console/";
             var serverOriginGlobal = "<%=getServerURL("", true, true)%>";
-            var proxyContextPathGlobal = "<%=ServerConfiguration.getInstance().getFirstProperty(PROXY_CONTEXT_PATH)%>";
             var superTenantGlobal = "<%=SUPER_TENANT_DOMAIN_NAME%>";
             var tenantPrefixGlobal = "<%=TENANT_AWARE_URL_PREFIX%>";
             var isAdaptiveAuthenticationAvailable = JSON.parse("<%= isAdaptiveAuthenticationAvailable() %>");
@@ -174,7 +171,7 @@
         <!-- Start of custom scripts added to the head -->
         <script type="text/javascript" src="/console/extensions/head-script.js"></script>
         <!-- End of custom scripts added to the head -->
-    <script defer src="/console/static/js/runtime.e01f489f.js?6003ef5f364b4666"></script><script defer src="/console/static/js/vendor.691a15a3.js?6003ef5f364b4666"></script><script defer src="/console/static/js/0.6f1123ea.js?6003ef5f364b4666"></script><script defer src="/console/static/js/1.f18534f9.js?6003ef5f364b4666"></script><script defer src="/console/static/js/certificate.2e0d06fe.js?6003ef5f364b4666"></script><script defer src="/console/static/js/codemirror.ada5f8d6.js?6003ef5f364b4666"></script><script defer src="/console/static/js/main.c79e7ad8.js?6003ef5f364b4666"></script></head>
+    <script defer src="/console/static/js/runtime.dd60d7d2.js?e53d719344b5ee54"></script><script defer src="/console/static/js/vendor.36d2e198.js?e53d719344b5ee54"></script><script defer src="/console/static/js/0.97a855ab.js?e53d719344b5ee54"></script><script defer src="/console/static/js/1.18b62775.js?e53d719344b5ee54"></script><script defer src="/console/static/js/certificate.1c6c5afd.js?e53d719344b5ee54"></script><script defer src="/console/static/js/codemirror.70dd0517.js?e53d719344b5ee54"></script><script defer src="/console/static/js/main.285d3e4b.js?e53d719344b5ee54"></script></head>
     <body>
         <noscript>
             You need to enable JavaScript to run this app.

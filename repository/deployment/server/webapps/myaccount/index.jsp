@@ -8,8 +8,6 @@
 -->
 
 <%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page import="org.wso2.carbon.base.ServerConfiguration" %>
-<%@ page import="static org.wso2.carbon.identity.core.util.IdentityCoreConstants.PROXY_CONTEXT_PATH" %>
 <%@ page import="static org.wso2.carbon.identity.core.util.IdentityUtil.getServerURL" %>
 <%@ page import="org.owasp.encoder.Encode" %>
 
@@ -167,6 +165,15 @@
         <script>
             // Handles myaccount tenanted signout before auth sdk get loaded
             var applicationDomain = window.location.origin;
+            var isSignOutSuccess = userAccessedPath.includes("sign_out_success");
+
+            if(startupConfig.legacyAuthzRuntime && isSignOutSuccess && userTenant) {
+                if (startupConfig.subdomainApplication) {
+                    window.location.href = applicationDomain + "/" + startupConfig.tenantPrefix + "/" + userTenant;
+                } else {
+                    window.location.href = applicationDomain + "/" + startupConfig.tenantPrefix + "/" + userTenant + "/myaccount";
+                }
+            }
 
             var serverOrigin = "<%=getServerURL("", true, true)%>";
             var authorizationCode = "<%=Encode.forHtml(request.getParameter("code"))%>" != "null"
@@ -189,8 +196,6 @@
         <!-- End of custom scripts added to the head -->
     </head>
     <script>
-        var proxyContextPathGlobal = "<%=ServerConfiguration.getInstance().getFirstProperty(PROXY_CONTEXT_PATH)%>";
-
         function authenticateWithSDK() {
 
             if(!authorizationCode) {
@@ -204,31 +209,32 @@
                     return "";
                 }
 
-                function getTenantPath(tenantDomain) {
-                    var _tenantDomain = tenantDomain ? tenantDomain : getTenantName();
+                function getApiPath(path) {
+                    if (startupConfig.legacyAuthzRuntime) {
+                        if(path) {
+                            return serverOrigin + path;
+                        }
 
-                    return _tenantDomain !== ""
-                        ? "/" + startupConfig.tenantPrefix + "/" + _tenantDomain
+                        return serverOrigin;
+                    }
+                    var basePath = serverOrigin;
+
+                    if (getTenantName()) {
+                        basePath = serverOrigin + getTenantPath();
+                    }
+
+                    if(path) {
+                        return basePath + path;
+                    }
+
+                    return basePath;
+                }
+
+                function getTenantPath() {
+                    return getTenantName() !== ""
+                        ? "/" + startupConfig.tenantPrefix + "/" + getTenantName()
                         : "";
                 };
-
-                function getApiPath(path) {
-                    var tenantDomain = getTenantName();
-
-                    if (!tenantDomain) {
-                        if (startupConfig.superTenantProxy) {
-                            tenantDomain = startupConfig.superTenantProxy;
-                        } else {
-                            tenantDomain = startupConfig.superTenant;
-                        }
-                    }
-
-                    if (path) {
-                        return serverOrigin + getTenantPath(tenantDomain) + path;
-                    }
-
-                    return serverOrigin + getTenantPath(tenantDomain);
-                }
 
                 /**
                  * Construct the sign-in redirect URL.
@@ -236,16 +242,16 @@
                  * @returns {string} Contructed URL.
                  */
                  function signInRedirectURL() {
-                    // When there's no proxy context path, the IS server returns "null".
-                    var contextPath = (!proxyContextPathGlobal || proxyContextPathGlobal === "null") ? "" : "/" + proxyContextPathGlobal;
-
-                    if (getTenantName() === startupConfig.superTenant) {
-                        return applicationDomain.replace(/\/+$/, '') + contextPath
-                             + "/myaccount";
+                    if (startupConfig.legacyAuthzRuntime) {
+                        return applicationDomain.replace(/\/+$/, '') + getOrganizationPath()
+                        + "/myaccount";
                     }
-
-                    return applicationDomain.replace(/\/+$/, '') + contextPath + getTenantPath()
-                         + "/myaccount";
+                    if (getTenantName() === startupConfig.superTenant) {
+                        return applicationDomain.replace(/\/+$/, '')
+                            + "/myaccount";
+                    }
+                    return applicationDomain.replace(/\/+$/, '') + getTenantPath()
+                        + "/myaccount";
                 }
 
                 /**
@@ -254,11 +260,52 @@
                  * @returns {string} Contructed URL.
                  */
                 function getSignOutRedirectURL() {
+                    if (startupConfig.legacyAuthzRuntime) {
+                        return applicationDomain.replace(/\/+$/, '') + getOrganizationPath();
+                    }
                     if (getTenantName() === startupConfig.superTenant) {
                         return applicationDomain.replace(/\/+$/, '');
                     }
-
                     return applicationDomain.replace(/\/+$/, '') + getTenantPath();
+                }
+
+                /**
+                 * Construct the authorization endpoint.
+                 *
+                 * @returns {string} Contructed URL.
+                 */
+                 function getAuthorizationEndpoint() {
+                    if (startupConfig.legacyAuthzRuntime) {
+                        return getApiPath(
+                            userTenant ?
+                            "/" + startupConfig.tenantPrefix + "/" + startupConfig.superTenantProxy + startupConfig.pathExtension + "/oauth2/authorize" + "?ut="+userTenant.replace(/\/+$/, '') + (utype ? "&utype="+ utype : '')
+                            : "/" + startupConfig.tenantPrefix + "/" + startupConfig.superTenantProxy + startupConfig.pathExtension + "/oauth2/authorize");
+                    }
+                    return getApiPath("/oauth2/authorize");
+                }
+
+                /**
+                 * Construct the logout endpoint.
+                 *
+                 * @returns {string} Contructed URL.
+                 */
+                 function getLogoutEndpointURL() {
+                    if (startupConfig.legacyAuthzRuntime) {
+                        return getApiPath("/" + startupConfig.tenantPrefix + "/" + startupConfig.superTenantProxy + startupConfig.pathExtension + "/oidc/logout");
+                    }
+                    getApiPath("/oidc/logout");
+                }
+
+                /**
+                 * Construct the oidc check session endpoint.
+                 *
+                 * @returns {string} Contructed URL.
+                 */
+                 function getOIDCSessionIFrameEndpointURL() {
+                    if (startupConfig.legacyAuthzRuntime) {
+                        return getApiPath("/" + startupConfig.tenantPrefix + "/" + startupConfig.superTenantProxy + startupConfig.pathExtension + "/oidc/checksession");
+                    }
+                    return getApiPath("/oidc/checksession");
                 }
 
                 /**
@@ -295,11 +342,15 @@
                  *
                  * @remarks This only applies to the new authz runtime.
                  *
-                 * @params originalParams - Original auth params.
+                 * @params orginalPrams - Original auth params.
                  * @returns {string} Contructed auth params.
                  */
-                function getAuthParamsForOrganizationLogins(originalParams) {
-                    var authParams = Object.assign({}, originalParams);
+                function getAuthParamsForOrganizationLogins(orginalPrams) {
+                    if (startupConfig.legacyAuthzRuntime) {
+                        return orginalPrams;
+                    }
+
+                    var authParams = Object.assign({}, orginalPrams);
 
                     if (getOrganizationPath()) {
                         var initialUserOrgInLocalStorage = localStorage.getItem("user-org");
@@ -319,21 +370,6 @@
                     return authParams;
                 }
 
-                /**
-                 * Retrieves the super tenant.
-                 * If a super tenant proxy is defined in the startup configuration, it is returned;
-                 * otherwise, the super tenant directly from the startup configuration is returned.
-                 *
-                 * @returns {string} The super tenant.
-                 */
-                function getSuperTenant() {
-                    if (startupConfig.superTenantProxy) {
-                        return startupConfig.superTenantProxy;
-                    }
-
-                    startupConfig.superTenant;
-                }
-
                 var auth = AsgardeoAuth.AsgardeoSPAClient.getInstance();
 
                 var authConfig = {
@@ -345,11 +381,11 @@
                     scope: ["openid SYSTEM"],
                     storage: "webWorker",
                     endpoints: {
-                        authorizationEndpoint: getApiPath("/oauth2/authorize"),
+                        authorizationEndpoint: getAuthorizationEndpoint(),
                         clockTolerance: 300,
                         jwksEndpointURL: undefined,
-                        logoutEndpointURL: getApiPath("/oidc/logout"),
-                        oidcSessionIFrameEndpointURL: getApiPath("/oidc/checksession"),
+                        logoutEndpointURL: getLogoutEndpointURL(),
+                        oidcSessionIFrameEndpointURL: getOIDCSessionIFrameEndpointURL(),
                         tokenEndpointURL: undefined,
                         tokenRevocationEndpointURL: undefined,
                     },
@@ -364,7 +400,7 @@
     <script>
         if (!authorizationCode) {
             var authSPAJS = document.createElement("script");
-            var authScriptSrc = "/myaccount/auth-spa-3.1.2.min.js";
+            var authScriptSrc = "/myaccount/auth-spa-3.0.1.min.js";
 
             authSPAJS.setAttribute("src", authScriptSrc);
             authSPAJS.setAttribute("async", "false");

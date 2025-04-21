@@ -1,4 +1,4 @@
-WSO2 Identity Server v7.1.0
+WSO2 Identity Server v7.0.0
 
 
 This file explains the usages of all the scripts contained within

@@ -1,9 +1,5 @@
 {
   "password.recovery.heading": "Passwort vergessen?",
-  "password.recovery.body": "Wir geben dir Deckung. Geben Sie Ihren Benutzernamen ein, um mit dem Zurücksetzen Ihres Passworts zu beginnen.",
-  "password.recovery.identifier.input.placeholder": "Nutzername",
-  "password.recovery.button.email.link": "Reset-Link senden",
-  "password.recovery.button.smsotp": "SMS-Code senden",
-  "send.email.link": "Link zum Zurücksetzen per E-Mail senden",
-  "send.code.via.sms": "Code per SMS versenden"
+  "password.recovery.body": "Machen Sie sich keine Sorgen, das kann passieren. Eine E-Mail zum Zurücksetzen Ihres Passwortes wird Ihnen gesendet",
+  "password.recovery.button": "Reset-Link senden"
 }

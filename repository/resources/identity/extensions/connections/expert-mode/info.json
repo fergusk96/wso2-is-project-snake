@@ -1,10 +1,10 @@
 {
     "id": "expert-mode-idp",
     "name": "Expert Mode",
-    "description": "Enable login for users with built-in connectors and plug-in authenticators.",
+    "description": "Create a new Connection with minimum configurations.",
     "image": "assets/images/logos/expert.svg",
     "category": "DEFAULT",
     "displayOrder": 11,
-    "tags": [ "Custom" ],
+    "tags": [],
     "type": "MANUAL"
 }

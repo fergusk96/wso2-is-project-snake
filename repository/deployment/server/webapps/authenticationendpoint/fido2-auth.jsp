@@ -1,5 +1,5 @@
 <%--
-  ~ Copyright (c) 2019-2025, WSO2 LLC. (https://www.wso2.com).
+  ~ Copyright (c) 2019-2023, WSO2 LLC. (https://www.wso2.com).
   ~
   ~ WSO2 LLC. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -34,7 +34,6 @@
 
 <%!
     private boolean isMultiAuthAvailable(String multiOptionURI) {
-
         boolean isMultiAuthAvailable = true;
         if (multiOptionURI == null || multiOptionURI.equals("null")) {
             isMultiAuthAvailable = false;
@@ -46,7 +45,7 @@
                 String authenticators = multiOptionURI.substring(authenticatorIndex + 15);
                 int authLastIndex = authenticators.indexOf("&") != -1 ? authenticators.indexOf("&") : authenticators.length();
                 authenticators = authenticators.substring(0, authLastIndex);
-                List<String> authList = Arrays.asList(authenticators.split("%3B"));
+                List<String> authList = new ArrayList<>(Arrays.asList(authenticators.split("%3B")));
                 if (authList.size() < 2) {
                     isMultiAuthAvailable = false;
                 } else if (authList.size() == 2 && authList.contains("backup-code-authenticator%3ALOCAL")) {
@@ -178,7 +177,7 @@
                             </div>
                             <%
                                 String multiOptionURI = Encode.forJava(request.getParameter("multiOptionURI"));
-                                if (multiOptionURI != null && AuthenticationEndpointUtil.isValidMultiOptionURI(multiOptionURI) &&
+                                if (multiOptionURI != null && AuthenticationEndpointUtil.isValidURL(multiOptionURI) &&
                                     isMultiAuthAvailable(multiOptionURI)) {
                             %>
                                 <div class="text-center mt-1">
@@ -265,11 +264,8 @@
 
     <%
         String myaccountUrl = application.getInitParameter("MyAccountURL");
-        if (StringUtils.isNotEmpty(myaccountUrl)) {
-            myaccountUrl = myaccountUrl + "/t/" + tenantDomain;
-        } else {
-            myaccountUrl = IdentityManagementEndpointUtil.getUserPortalUrl(
-                application.getInitParameter(IdentityManagementEndpointConstants.ConfigConstants.USER_PORTAL_URL), tenantDomain);
+        if (StringUtils.isEmpty(myaccountUrl)) {
+            myaccountUrl = ServiceURLBuilder.create().addPath(MY_ACCOUNT).build().getAbsolutePublicURL();
         }
     %>
 

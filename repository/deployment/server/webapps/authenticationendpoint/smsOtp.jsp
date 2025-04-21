@@ -34,11 +34,6 @@
 <%@ include file="includes/localize.jsp" %>
 <%@ include file="includes/init-url.jsp" %>
 
-<%
-    // Add the sms-otp screen to the list to retrieve text branding customizations.
-    screenNames.add("sms-otp");
-%>
-
 <%-- Branding Preferences --%>
 <jsp:directive.include file="includes/branding-preferences.jsp"/>
 
@@ -149,7 +144,7 @@
                       <% } %>
                       <div id="alertDiv"></div>
                       <div class="segment-form">
-                          <form class="ui large form otp-form" id="codeForm" name="codeForm" action="<%=commonauthURL%>" method="POST">
+                          <form class="ui large form" id="codeForm" name="codeForm" action="<%=commonauthURL%>" method="POST">
                               <%
                                   String loginFailed = request.getParameter("authFailure");
                                   if (loginFailed != null && "true".equals(loginFailed)) {
@@ -163,16 +158,10 @@
                               } %>
 
                             <div class="field">
-                                <%
-                                    String screenValue = request.getParameter("screenValue");
-                                    if (screenValue == null) {
-                                        screenValue = request.getParameter("screenvalue");
-                                    }
-                                    if (screenValue != null) {
-                                %>
+                                <% if (request.getParameter("screenValue") != null) { %>
                                     <label for="password">
                                         <%=AuthenticationEndpointUtil.i18n(resourceBundle, "enter.code.sent.smsotp")%>
-                                        (<%=Encode.forHtmlContent(screenValue)%>)
+                                        (<%=Encode.forHtmlContent(request.getParameter("screenValue"))%>)
                                     </label>
                                 <% } else { %>
                                     <label for="password">
@@ -464,7 +453,6 @@
 
         <%!
             private boolean isMultiAuthAvailable(String multiOptionURI) {
-
                 boolean isMultiAuthAvailable = true;
                 if (multiOptionURI == null || multiOptionURI.equals("null")) {
                     isMultiAuthAvailable = false;
@@ -476,7 +464,7 @@
                         String authenticators = multiOptionURI.substring(authenticatorIndex + 15);
                         int authLastIndex = authenticators.indexOf("&") != -1 ? authenticators.indexOf("&") : authenticators.length();
                         authenticators = authenticators.substring(0, authLastIndex);
-                        List<String> authList = Arrays.asList(authenticators.split("%3B"));
+                        List<String> authList = new ArrayList<>(Arrays.asList(authenticators.split("%3B")));
                         if (authList.size() < 2) {
                             isMultiAuthAvailable = false;
                         }

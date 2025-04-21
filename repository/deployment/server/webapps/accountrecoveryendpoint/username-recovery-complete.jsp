@@ -32,30 +32,12 @@
 <%-- Include tenant context --%>
 <jsp:directive.include file="tenant-resolve.jsp"/>
 
-<%
-    // Add the user-recovery-success screen to the list to retrieve text branding customizations.
-    screenNames.add("username-recovery-success");
-%>
-
 <%-- Branding Preferences --%>
 <jsp:directive.include file="includes/branding-preferences.jsp"/>
 
 <%
-    String EMAIL = "EMAIL";
-    String callback = request.getParameter("callback");
+    String callback = (String) request.getAttribute("callback");
     String username = request.getParameter("username");
-    String recoveryChannelType = IdentityManagementEndpointUtil.getStringValue(request.getAttribute("recoveryChannelType"));
-
-    String successMessageTitle;
-    String successMessageDescrition;
-
-    if (StringUtils.equals(recoveryChannelType, EMAIL)){
-        successMessageTitle = "username.recovery.email.success.heading";
-        successMessageDescrition = "username.recovery.email.success.body";
-    } else {
-        successMessageTitle = "username.recovery.sms.success.heading";
-        successMessageDescrition = "username.recovery.sms.success.body";
-    }
 %>
 
 <%-- Data for the layout from the page --%>
@@ -92,10 +74,10 @@
         <layout:component componentName="MainSection" >
             <div class="ui green segment mt-3 attached">
                 <h3 class="ui header text-center slogan-message mt-4 mb-6" data-testid="username-recovery-notify-page-header">
-                    <%=i18n(recoveryResourceBundle, customText, successMessageTitle)%>
+                    <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "check.your.email")%>
                 </h3>
                 <p class="portal-tagline-description">
-                    <%=i18n(recoveryResourceBundle, customText, successMessageDescrition)%>
+                    <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Username.recovery.information.sent.to.your.email")%>
                     <br><br>
                     <%
                         if(StringUtils.isNotBlank(callback)) {
@@ -103,7 +85,7 @@
                         <br/><br/>
                         <i class="caret left icon primary"></i>
                         <a href="<%= Encode.forHtml(callback)%>">
-                            <%=i18n(recoveryResourceBundle, customText, "username.recovery.success.action")%>
+                            <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle,"Back.to.application")%>
                         </a>
                     <% } %>
                 </p>
@@ -116,6 +98,7 @@
                         <%= StringEscapeUtils.escapeHtml4(supportEmail) %>
                     </span>
                     </a>
+                    .
                 </p>
             </div>
         </layout:component>

@@ -58,7 +58,6 @@
 <%@ page import="java.io.UnsupportedEncodingException" %>
 
 <jsp:directive.include file="includes/init-loginform-action-url.jsp"/>
-<jsp:directive.include file="plugins/basicauth-extensions.jsp"/>
 
 <script>
     function goBack() {
@@ -288,9 +287,7 @@
 
     if (isEmailUsernameEnabled == true) {
         usernameLabel = "email.username";
-    }
-
-    if (isMultiAttributeLoginEnabledInTenant) {
+    } else if (isMultiAttributeLoginEnabledInTenant) {
         if (allowedAttributes != null) {
             usernameLabel = getUsernameLabel(resourceBundle, allowedAttributes);
             usernamePlaceHolder = "enter.your.identifier";
@@ -478,20 +475,11 @@
    <% } %>
     <% if (!isIdentifierFirstLogin(inputType) && !isLoginHintAvailable(inputType)) { %>
             <div class="field m-0">
-                <% String loginInputLabel=i18n(resourceBundle, customText, "login.identifier.input.label" , "", false); %>
-                    <% if (StringUtils.isNotBlank(loginInputLabel)) { %>
-                        <label>
-                            <%= loginInputLabel %>
-                        </label>
-                        <% } else if (isMultiAttributeLoginEnabledInTenant) { %>
-                            <label>
-                                <%= usernameLabel %>
-                            </label>
-                            <% } else { %>
-                                <label>
-                                    <%= AuthenticationEndpointUtil.i18n(resourceBundle, usernameLabel) %>
-                                </label>
-                                <% } %>
+                <% if (isMultiAttributeLoginEnabledInTenant) { %>
+                    <label><%=usernameLabel %></label>
+                <% } else { %>
+                    <label><%=AuthenticationEndpointUtil.i18n(resourceBundle, usernameLabel)%></label>
+                <% } %>
                 <div class="ui fluid left icon input">
                 <input
                     type="text"

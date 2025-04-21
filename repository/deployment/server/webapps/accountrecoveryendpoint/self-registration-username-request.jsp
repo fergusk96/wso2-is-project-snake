@@ -46,8 +46,6 @@
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.ConfiguredAuthenticatorsRetrievalClientException" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.IdentityProviderDataRetrievalClient" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.IdentityProviderDataRetrievalClientException" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.OrganizationDiscoveryConfigDataRetrievalClient" %>
-<%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.OrganizationDiscoveryConfigDataRetrievalClientException" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.api.UsernameRecoveryApi" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.Claim" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.model.User" %>
@@ -77,18 +75,8 @@
 <%-- Include tenant context --%>
 <jsp:directive.include file="tenant-resolve.jsp"/>
 
-<%
-    // Add the sign-up screen to the list to retrieve text branding customizations.
-    screenNames.add("sign-up");
-%>
-
 <%-- Branding Preferences --%>
 <jsp:directive.include file="includes/branding-preferences.jsp"/>
-
-<%-- Data for the layout from the page --%>
-<%
-    layoutData.put("isSelfRegistrationUsernameRequestPage", true);
-%>
 
 <%
     String BASIC_AUTHENTICATOR = "BasicAuthenticator";
@@ -98,7 +86,6 @@
     String FACEBOOK_AUTHENTICATOR = "FacebookAuthenticator";
     String OIDC_AUTHENTICATOR = "OpenIDConnectAuthenticator";
     String SSO_AUTHENTICATOR = "OrganizationAuthenticator";
-    String SSO_AUTHENTICATOR_NAME = "SSO";
     String commonauthURL = "../commonauth";
 
     boolean error = IdentityManagementEndpointUtil.getBooleanValue(request.getAttribute("error"));
@@ -122,12 +109,6 @@
     String errorMsg = IdentityManagementEndpointUtil.getStringValue(request.getAttribute("errorMsg"));
     String consentPurposeGroupName = "SELF-SIGNUP";
     String consentPurposeGroupType = "SYSTEM";
-    boolean isEmailUsernameEnabled = MultitenantUtils.isEmailUserName();
-    boolean hideUsernameFieldWhenEmailAsUsernameIsEnabled = Boolean.parseBoolean(config.getServletContext().getInitParameter(
-        "HideUsernameWhenEmailAsUsernameEnabled"));
-    OrganizationDiscoveryConfigDataRetrievalClient orgDiscoveryConfigRetrievalClient = new OrganizationDiscoveryConfigDataRetrievalClient();
-    Map<String, String> discoveryConfig;
-    String discoveredUsername = request.getParameter("discoveredUsername");
 
     String[] missingClaimList = new String[0];
     String[] missingClaimDisplayName = new String[0];
@@ -197,28 +178,12 @@
     boolean isLocal = false;
     boolean isFederated = false;
     boolean isBasic = false;
-    boolean isSSOLoginAuthenticatorConfigured = false;
-    boolean emailDomainDiscoveryEnabled = false;
-    boolean emailDomainBasedSelfSignupEnabled = false;
     // Enable basic account creation flow if there are no authenticators configured.
     if (configuredAuthenticators == null) {
         isBasic = true;
     }
-
     JSONArray localAuthenticators = new JSONArray();
     JSONArray federatedAuthenticators = new JSONArray();
-
-    try {
-        discoveryConfig = orgDiscoveryConfigRetrievalClient.getDiscoveryConfiguration(tenantDomain);
-    } catch (OrganizationDiscoveryConfigDataRetrievalClientException e) {
-        discoveryConfig = null;
-    }
-
-    if (discoveryConfig != null) {
-        emailDomainDiscoveryEnabled = Boolean.parseBoolean(discoveryConfig.get("emailDomain.enable"));
-        emailDomainBasedSelfSignupEnabled = Boolean.parseBoolean(discoveryConfig.get("emailDomainBasedSelfSignup.enable"));
-    }
-
     if (configuredAuthenticators != null) {
         for ( int index = 0; index < configuredAuthenticators.length(); index++) {
             JSONObject step = (JSONObject)configuredAuthenticators.get(index);
@@ -236,19 +201,6 @@
             }
             if (stepId == 1) {
                 federatedAuthenticators = (JSONArray)step.get("federatedAuthenticators");
-
-                    for (int i = 0; i < federatedAuthenticators.length(); i++) {
-                        JSONObject jsonObject = federatedAuthenticators.getJSONObject(i);
-                        if (SSO_AUTHENTICATOR.equals(jsonObject.getString("type"))) {
-                            if (!emailDomainBasedSelfSignupEnabled) {
-                                federatedAuthenticators.remove(i);
-                            } else {
-                                isSSOLoginAuthenticatorConfigured = true;
-                            }
-                            break;
-                        }
-                    }
-
                 if (federatedAuthenticators.length() > 0) {
                     isFederated = true;
                 }
@@ -348,7 +300,7 @@
     List<Claim> claimsList;
     UsernameRecoveryApi usernameRecoveryApi = new UsernameRecoveryApi();
     try {
-        claimsList = usernameRecoveryApi.claimsGet(tenantDomain, false, "selfRegistration");
+        claimsList = usernameRecoveryApi.claimsGet(tenantDomain, false);
         uniquePIIs = IdentityManagementEndpointUtil.fillPiisWithClaimInfo(uniquePIIs, claimsList);
         if (uniquePIIs != null) {
             claims = uniquePIIs.values().toArray(new Claim[0]);
@@ -483,7 +435,7 @@
                                     "Enter.your.username.here")%>
                             </label>
                             <input id="username" name="username" type="text" required
-                                <% if(skipSignUpEnableCheck && StringUtils.isNotBlank(username)) {%> value="<%=Encode.forHtmlAttribute(username)%>" <%}%>>
+                                <% if(skipSignUpEnableCheck) {%> value="<%=Encode.forHtmlAttribute(username)%>" <%}%>>
                         </div>
                         <% if (isSaaSApp) { %>
                         <p class="ui tiny compact info message">
@@ -558,9 +510,27 @@
                             <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "continue.with.email")%>
                         </button>
                     </div>
-                    <div class="ui horizontal divider">
-                        <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "or")%>
-                    </div>
+
+                    <!-- Do not show the horizontal divider, if the only federated authenticator available is the OrganizationAuthenticator. -->
+                    <%
+                        if (federatedAuthenticators.length() > 0) {
+                            Boolean isSSOLoginTheOnlyAuthenticatorConfigured = false;
+
+                            if (federatedAuthenticators.length() == 1) {
+                                JSONObject onlyAvailableFederatedAuthenticator = (JSONObject) federatedAuthenticators.get(0);
+                                String authenticatorType = (String) onlyAvailableFederatedAuthenticator.get("type");
+                                isSSOLoginTheOnlyAuthenticatorConfigured = authenticatorType.equals(SSO_AUTHENTICATOR);
+                            }
+
+                            if (!isSSOLoginTheOnlyAuthenticatorConfigured) {
+                    %>
+                                <div class="ui horizontal divider">
+                                    <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "or")%>
+                                </div>
+                    <%       }
+                        }
+                    %>
+
                 </div>
 
                 <!-- federated authenticators -->
@@ -586,10 +556,6 @@
                         String EXTERNAL_CONNECTION_PREFIX = "sign in with";
                         if (StringUtils.startsWithIgnoreCase(name, EXTERNAL_CONNECTION_PREFIX)) {
                             displayName = name.substring(EXTERNAL_CONNECTION_PREFIX.length());
-                        }
-                        // If IdP name is "SSO", need to handle as special case.
-                        if (StringUtils.equalsIgnoreCase(name, SSO_AUTHENTICATOR_NAME)) {
-                            imageURL = "libs/themes/default/assets/images/identity-providers/sso.svg";
                         }
 
                         if (StringUtils.equals(type,GOOGLE_AUTHENTICATOR)) {
@@ -658,7 +624,7 @@
                         </div>
                     </div>
                     <br>
-                    <% } else {
+                    <% } else if (!StringUtils.equals(type, SSO_AUTHENTICATOR)) {
 
                         String logoPath = imageURL;
                         if (!imageURL.isEmpty() && imageURL.contains("/")) {
@@ -737,12 +703,7 @@
 
                         <div class="ui divider hidden"></div>
                         <%
-                            if (!StringUtils.equalsIgnoreCase(backToUrl, "null") &&
-                                !StringUtils.isBlank(backToUrl) &&
-                                !backToUrl.toLowerCase().contains("javascript:") &&
-                                !backToUrl.toLowerCase().contains("file:") &&
-                                !backToUrl.toLowerCase().contains("ftp:") &&
-                                !backToUrl.toLowerCase().contains("data:")) {
+                            if (!StringUtils.equalsIgnoreCase(backToUrl,"null") && !StringUtils.isBlank(backToUrl)) {
                         %>
                         <div class="buttons mt-2">
                             <div class="field external-link-container text-small">
@@ -772,7 +733,7 @@
                                 <input
                                     type="text"
                                     id="alphanumericUsernameUserInput"
-                                    value="<%=discoveredUsername != null ? Encode.forHtmlAttribute(discoveredUsername) : ""%>"
+                                    value=""
                                     name="usernameInput"
                                     tabindex="1"
                                     placeholder="<%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "enter.your.username")%>"
@@ -814,7 +775,7 @@
                                 <input
                                     type="email"
                                     id="usernameUserInput"
-                                    value="<%=discoveredUsername != null ? Encode.forHtmlAttribute(discoveredUsername) : ""%>"
+                                    value=""
                                     name="http://wso2.org/claims/emailaddress"
                                     tabindex="1"
                                     placeholder="<%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "enter.your.email")%>"
@@ -1027,10 +988,6 @@
                                                 !StringUtils.equals(claim.getUri(), "http://wso2.org/claims/groups") &&
                                                 !StringUtils.equals(claim.getUri(), "http://wso2.org/claims/role") &&
                                                 !StringUtils.equals(claim.getUri(), "http://wso2.org/claims/url") &&
-                                                !StringUtils.equals(claim.getUri(), "http://wso2.org/claims/emailAddresses") &&
-                                                !StringUtils.equals(claim.getUri(), "http://wso2.org/claims/verifiedEmailAddresses") &&
-                                                !StringUtils.equals(claim.getUri(), "http://wso2.org/claims/mobileNumbers") &&
-                                                !StringUtils.equals(claim.getUri(), "http://wso2.org/claims/verifiedMobileNumbers") &&
                                                 !(claim.getReadOnly() != null ? claim.getReadOnly() : false)) {
                                             String claimURI = claim.getUri();
                                             String claimValue = request.getParameter(claimURI);
@@ -1301,12 +1258,7 @@
                         </div>
                         <div class="ui divider hidden"></div>
                         <%
-                            if (!StringUtils.equalsIgnoreCase(backToUrl, "null") &&
-                                !StringUtils.isBlank(backToUrl) &&
-                                !backToUrl.toLowerCase().contains("javascript:") &&
-                                !backToUrl.toLowerCase().contains("file:") &&
-                                !backToUrl.toLowerCase().contains("ftp:") &&
-                                !backToUrl.toLowerCase().contains("data:")) {
+                            if (!StringUtils.equalsIgnoreCase(backToUrl,"null") && !StringUtils.isBlank(backToUrl)) {
                         %>
                         <div class="buttons mt-2">
                             <div class="field external-link-container text-small">
@@ -1351,30 +1303,9 @@
         <jsp:include page="includes/footer.jsp"/>
     <% } %>
 
-    <div id="mandetory_pii_selection_validation" class="ui tiny modal">
-        <div class="header">
-            <h4>
-                <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Consent.selection")%>
-            </h4>
-        </div>
-        <div class="content">
-            <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Need.to.select.all.mandatory.attributes")%>
-        </div>
-        <div class="actions">
-            <button type="button" class="ui primary button cancel" data-dismiss="modal">
-                <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Ok")%>
-            </button>
-        </div>
-    </div>
-
-    <script type="text/javascript" src="libs/handlebars.min-v4.7.7.js"></script>
-    <script type="text/javascript" src="libs/jstree/src/jstree.js"></script>
-    <script type="text/javascript" src="libs/jstree/src/jstree-actions.js"></script>
-    <script type="text/javascript" src="js/consent_template_1.js"></script>
-    <script type="text/javascript" src="js/consent_template_2.js"></script>
     <script>
         const ALPHANUMERIC_USERNAME_REGEX = /^(?=.*[a-zA-Z])[a-zA-Z0-9]+$/;
-        const USERNAME_WITH_SPECIAL_CHARS_REGEX = /^(?=.*[a-zA-Z])[a-zA-Z0-9!@#$&'+\\=^.{|}~-]+$/;
+        const USERNAME_WITH_SPECIAL_CHARS_REGEX = /^(?=.*[a-zA-Z])[a-zA-Z0-9!@#$&'+\\=^_.{|}~-]+$/;
         var registrationDataKey = "registrationData";
         var passwordField = $("#passwordUserInput");
         var $registerForm = $("#register");
@@ -1388,7 +1319,6 @@
         var specialChr = /[!#$%&'()*+,\-\.\/:;<=>?@[\]^_{|}~]/g;
         var consecutiveChr = /([^])\1+/g;
         var errorMessage = getErrorMessage();
-        var validConsentPurpose = true;
 
         if (passwordConfig.minLength> 0 || passwordConfig.maxLength > 0) {
             document.getElementById("length").innerHTML = '<%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "must.be.between")%>' +
@@ -1563,249 +1493,6 @@
             hideCountryValidationStatus();
         });
 
-        function unflatten(arr) {
-            var tree = [],
-                mappedArr = {},
-                arrElem,
-                mappedElem;
-
-            // First map the nodes of the array to an object -> create a hash table.
-            for (var i = 0, len = arr.length; i < len; i++) {
-                arrElem = arr[i];
-                mappedArr[arrElem.id] = arrElem;
-                mappedArr[arrElem.id]['children'] = [];
-            }
-
-            for (var id in mappedArr) {
-                if (mappedArr.hasOwnProperty(id)) {
-                    mappedElem = mappedArr[id];
-                    // If the element is not at the root level, add it to its parent array of children.
-                    if (mappedElem.parent && mappedElem.parent != "#" && mappedArr[mappedElem['parent']]) {
-                        mappedArr[mappedElem['parent']]['children'].push(mappedElem);
-                    }
-                    // If the element is at the root level, add it to first level elements array.
-                    else {
-                        tree.push(mappedElem);
-                    }
-                }
-            }
-            return tree;
-        }
-
-        // Process the consent purposes for submission using tree view.
-        function addReciptInformation(container) {
-            // var oldReceipt = receiptData.receipts;
-            var newReceipt = {};
-            var services = [];
-            var service = {};
-            var mandatoryPiis = [];
-            var selectedMandatoryPiis = [];
-
-            var selectedNodes = container.jstree(true).get_selected('full', true);
-            var undeterminedNodes = container.jstree(true).get_undetermined('full', true);
-            var allTreeNodes = container.jstree(true).get_json('#', {flat: true});
-
-            $.each(allTreeNodes, function (i, val) {
-                if (typeof (val.li_attr.mandetorypiicatergory) != "undefined" &&
-                    val.li_attr.mandetorypiicatergory == "true") {
-                    mandatoryPiis.push(val.li_attr.piicategoryid);
-                }
-            });
-
-            $.each(selectedNodes, function (i, val) {
-                if (val.hasOwnProperty('li_attr')) {
-                    selectedMandatoryPiis.push(selectedNodes[i].li_attr.piicategoryid);
-                }
-            });
-
-            var allMandatoryPiisSelected = mandatoryPiis.every(function (val) {
-                return selectedMandatoryPiis.indexOf(val) >= 0;
-            });
-
-            if (!allMandatoryPiisSelected) {
-                $("#mandetory_pii_selection_validation").modal({blurring: true}).modal("show");
-                validConsentPurpose = false;
-            } else {
-                validConsentPurpose = true;
-            }
-
-            if (!selectedNodes || selectedNodes.length < 1) {
-                //revokeReceipt(oldReceipt.consentReceiptID);
-                return;
-            }
-            selectedNodes = selectedNodes.concat(undeterminedNodes);
-            var relationshipTree = unflatten(selectedNodes); //Build relationship tree
-            var purposes = relationshipTree[0].children;
-            var newPurposes = [];
-
-            for (var i = 0; i < purposes.length; i++) {
-                var purpose = purposes[i];
-                var newPurpose = {};
-                newPurpose["purposeId"] = purpose.li_attr.purposeid;
-                newPurpose['piiCategory'] = [];
-                newPurpose['purposeCategoryId'] = [<%=defaultPurposeCatId%>];
-
-                var piiCategory = [];
-                var categories = purpose.children;
-                for (var j = 0; j < categories.length; j++) {
-                    var category = categories[j];
-                    var c = {};
-                    c['piiCategoryId'] = category.li_attr.piicategoryid;
-                    piiCategory.push(c);
-                }
-                newPurpose['piiCategory'] = piiCategory;
-                newPurposes.push(newPurpose);
-            }
-            service['purposes'] = newPurposes;
-            services.push(service);
-            newReceipt['services'] = services;
-
-            return newReceipt;
-        }
-
-        // Process the consent purposes for submission using template view.
-        function addReciptInformationFromTemplate() {
-            var newReceipt = {};
-            var services = [];
-            var service = {};
-            var newPurposes = [];
-
-            $('.consent-statement input[type="checkbox"], .consent-statement strong label')
-                .each(function (i, element) {
-                    var checked = $(element).prop('checked');
-                    var isLable = $(element).is("lable");
-                    var newPurpose = {};
-                    var piiCategories = [];
-                    var isExistingPurpose = false;
-
-                    if (!isLable && checked) {
-                        var purposeId = element.data("purposeid");
-
-                        if (newPurposes.length != 0) {
-                            for (var i = 0; i < newPurposes.length; i++) {
-                                var selectedPurpose = newPurposes[i];
-                                if (selectedPurpose.purposeId == purposeId) {
-                                    newPurpose = selectedPurpose;
-                                    piiCategories = newPurpose.piiCategory;
-                                    isExistingPurpose = true;
-                                }
-                            }
-                        }
-                    }
-
-                    var newPiiCategory = {};
-
-                    newPurpose["purposeId"] = element.data("purposeid");
-                    newPiiCategory['piiCategoryId'] = element.data("piicategoryid");
-                    piiCategories.push(newPiiCategory);
-                    newPurpose['piiCategory'] = piiCategories;
-                    newPurpose['purposeCategoryId'] = [<%=defaultPurposeCatId%>];
-                    if (!isExistingPurpose) {
-                        newPurposes.push(newPurpose);
-                    }
-                });
-            service['purposes'] = newPurposes;
-            services.push(service);
-            newReceipt['services'] = services;
-
-            return newReceipt;
-        }
-
-        // Process the consent purposes for submission using row view.
-        function addReciptInformationFromRows() {
-            var newReceipt = {};
-            var services = [];
-            var service = {};
-            var newPurposes = [];
-            var mandatoryPiis = [];
-            var selectedMandatoryPiis = [];
-
-            $('#row-container input[type="checkbox"]').each(function (i, checkbox) {
-                var checkboxLabel = $(checkbox).next();
-                var checked = $(checkbox).prop('checked');
-                var newPurpose = {};
-                var piiCategories = [];
-                var isExistingPurpose = false;
-
-                if (checkboxLabel.data("mandetorypiicatergory")) {
-                    mandatoryPiis.push(checkboxLabel.data("piicategoryid"));
-                }
-
-                if (checked) {
-                    var purposeId = checkboxLabel.data("purposeid");
-                    selectedMandatoryPiis.push(checkboxLabel.data("piicategoryid"));
-                    if (newPurposes.length != 0) {
-                        for (var i = 0; i < newPurposes.length; i++) {
-                            var selectedPurpose = newPurposes[i];
-                            if (selectedPurpose.purposeId == purposeId) {
-                                newPurpose = selectedPurpose;
-                                piiCategories = newPurpose.piiCategory;
-                                isExistingPurpose = true;
-                            }
-                        }
-                    }
-                    var newPiiCategory = {};
-
-                    newPurpose["purposeId"] = checkboxLabel.data("purposeid");
-                    newPiiCategory['piiCategoryId'] = checkboxLabel.data("piicategoryid");
-                    piiCategories.push(newPiiCategory);
-                    newPurpose['piiCategory'] = piiCategories;
-                    newPurpose['purposeCategoryId'] = [<%=defaultPurposeCatId%>];
-                    if (!isExistingPurpose) {
-                        newPurposes.push(newPurpose);
-                    }
-                }
-            });
-            service['purposes'] = newPurposes;
-            services.push(service);
-            newReceipt['services'] = services;
-
-            var allMandatoryPiisSelected = mandatoryPiis.every(function (val) {
-                return selectedMandatoryPiis.indexOf(val) >= 0;
-            });
-
-            if (!allMandatoryPiisSelected) {
-                $("#mandetory_pii_selection_validation").modal({blurring: true}).modal("show");
-                validConsentPurpose = false;
-            } else {
-                validConsentPurpose = true;
-            }
-
-            return newReceipt;
-        }
-
-        // Handle the consent purpose submission.
-        function handleConsentPurpose() {
-            <%
-                if (hasPurposes) {
-            %>
-                    var receipt;
-            <%
-                    if (consentDisplayType == "template") {
-            %>
-                        receipt = addReciptInformationFromTemplate();
-            <%
-                    } else if (consentDisplayType == "tree") {
-            %>
-                        receipt = addReciptInformation(container);
-            <%
-                    } else if (consentDisplayType == "row")  {
-            %>
-                        receipt = addReciptInformationFromRows();
-            <%
-                    }
-            %>
-                    if (validConsentPurpose) {
-                        $('<input />').attr('type', 'hidden')
-                            .attr('name', "consent")
-                            .attr('value', JSON.stringify(receipt))
-                            .appendTo('#register');
-                    }
-            <%
-                }
-            %>
-        }
-
         // Handle form submission preventing double submission.
         $(document).ready(function(){
 
@@ -1837,34 +1524,30 @@
             %>
 
             // Dynamically render the configured authenticators.
+            var hasLocal = false;
             var hasFederated = false;
             var isBasicForm = true;
             try {
+                var hasLocal=JSON.parse(<%=isLocal%>);
                 var hasFederated = JSON.parse(<%=isFederated%>);
                 var isBasicForm = JSON.parse(<%=isBasic%>);
             } catch(error) {
                 // Do nothing.
             }
 
-            var isSSOLoginAuthenticatorConfigured = JSON.parse(<%=isSSOLoginAuthenticatorConfigured%>);
-            var emailDomainDiscoveryEnabled = JSON.parse(<%=emailDomainDiscoveryEnabled%>);
-            var emailDomainBasedSelfSignupEnabled = JSON.parse(<%=emailDomainBasedSelfSignupEnabled%>);
-
-            if (isSSOLoginAuthenticatorConfigured && emailDomainDiscoveryEnabled && emailDomainBasedSelfSignupEnabled) {
-                var params = new URLSearchParams({
-                    idp: 'SSO',
-                    authenticator: 'OrganizationAuthenticator',
-                    sessionDataKey: "<%=Encode.forUriComponent(request.getParameter("sessionDataKey"))%>",
-                    isSelfRegistration: 'true'
-                });
-                document.location = "<%=commonauthURL%>?" + params.toString();
-            } else if(hasFederated){
-                    $("#continue-with-email").show();
-                    $("#federated-authenticators").show();
+            if (hasLocal & hasFederated) {
+                $("#continue-with-email").show();
+                $("#federated-authenticators").show();
+            } else if (hasFederated) {
+                $("#federated-authenticators").show();
             } else {
                 $("#continue-with-email").hide();
                 $("#federated-authenticators").hide();
-                $("#basic-form").show();
+                if (hasLocal || isBasicForm) {
+                    $("#basic-form").show();
+                } else {
+                    $("#basic-form").hide();
+                }
             }
 
             var container;
@@ -1899,151 +1582,6 @@
                 }
             });
 
-            Handlebars.registerHelper('grouped_each', function (every, context, options) {
-                var out = "", subcontext = [], i;
-                if (context && context.length > 0) {
-                    for (i = 0; i < context.length; i++) {
-                        if (i > 0 && i % every === 0) {
-                            out += options.fn(subcontext);
-                            subcontext = [];
-                        }
-                        subcontext.push(context[i]);
-                    }
-                    out += options.fn(subcontext);
-                }
-                return out;
-            });
-
-            <%
-                if (hasPurposes) {
-                    if(consentDisplayType == "template") {
-            %>
-                        renderReceiptDetailsFromTemplate(JSON.parse("<%= Encode.forJava(purposes) %>"));
-            <%
-                    } else if (consentDisplayType == "tree") {
-            %>
-                        renderReceiptDetails(JSON.parse("<%= Encode.forJava(purposes) %>"));
-            <%
-                    } else if (consentDisplayType == "row"){
-            %>
-                        renderReceiptDetailsFromRows(JSON.parse("<%= Encode.forJava(purposes) %>"));
-            <%
-                    }
-                }
-            %>
-
-            // Render the consent purposes through tree view.
-            function renderReceiptDetails(data) {
-
-                var treeTemplate =
-                    '<div id="html1">' +
-                    '<ul><li class="jstree-open" data-jstree=\'{"icon":"icon-book"}\'>All' +
-                    '<ul>' +
-                    '{{#purposes}}' +
-                    '<li data-jstree=\'{"icon":"icon-book"}\' purposeid="{{purposeId}}" mandetorypurpose={{mandatory}}>' +
-                    '{{purpose}}{{#if mandatory}}<span class="required_consent">*</span>{{/if}} {{#if description}}<img src="images/info.png" class="form-info" data-toggle="tooltip" data-content="{{description}}" data-placement="right"/>{{/if}}<ul>' +
-                    '{{#piiCategories}}' +
-                    '<li data-jstree=\'{"icon":"icon-user"}\' piicategoryid="{{piiCategoryId}}" mandetorypiicatergory={{mandatory}}>{{#if displayName}}{{displayName}}{{else}}{{piiCategory}}{{/if}}{{#if mandatory}}<span class="required_consent">*</span>{{/if}}</li>' +
-                    '</li>' +
-                    '{{/piiCategories}}' +
-                    '</ul>' +
-                    '{{/purposes}}' +
-                    '</ul></li>' +
-                    '</ul>' +
-                    '</div>';
-
-                var tree = Handlebars.compile(treeTemplate);
-                var treeRendered = tree(data);
-
-                $("#tree-table").html(treeRendered);
-
-                container = $("#html1").jstree({
-                    plugins: ["table", "sort", "checkbox", "actions"],
-                    checkbox: {"keep_selected_style": false},
-                });
-
-                container.bind('hover_node.jstree', function () {
-                    var bar = $(this).find('.jstree-wholerow-hovered');
-                    bar.css('height',
-                        bar.parent().children('a.jstree-anchor').height() + 'px');
-                });
-
-                container.on('ready.jstree', function (event, data) {
-                    var $tree = $(this);
-                    $($tree.jstree().get_json($tree, {
-                        flat: true
-                    }))
-                        .each(function (index, value) {
-                            var node = container.jstree().get_node(this.id);
-                            allAttributes.push(node.id);
-                        });
-                    container.jstree('open_all');
-                });
-
-            }
-
-            // Render the consent purposes through template view.
-            function renderReceiptDetailsFromTemplate(receipt) {
-                /*
-                 *   Available when consentDisplayType is set to "template"
-                 *   customConsentTempalte1 is from the js file which is loaded as a normal js resource
-                 *   also try customConsentTempalte2 located at assets/js/consent_template_2.js
-                 */
-                var templateString = customConsentTempalte1;
-                var purp, purpose, piiCategory, piiCategoryInputTemplate;
-                $(receipt.purposes).each(function (i, e) {
-                    purp = e.purpose;
-                    purpose = "{{purpose:" + purp + "}}";
-                    var purposeInputTemplate = '<strong data-id="' + purpose + '">' + purp + '</strong>';
-                    templateString = templateString.replaceAll(purpose, purposeInputTemplate);
-                    $(e.piiCategories).each(function (i, ee) {
-                        piiCategory = "{{pii:" + purp + ":" + ee.displayName + "}}";
-                        var piiCategoryMin = piiCategory.replace(/\s/g, '');
-                        if (ee.mandatory == true) {
-                            piiCategoryInputTemplate = '<strong><label id="' + piiCategoryMin + '" data-id="' +
-                                piiCategory + '" data-piiCategoryId="' + ee.piiCategoryId + '" data-purposeId="' +
-                                e.purposeId + '" data-mandetoryPiiCategory="' + ee.mandatory + '">' + ee.displayName +
-                                '<span class="required_consent">*</span></label></strong>';
-                        } else {
-                            piiCategoryInputTemplate = '<span><label for="' + piiCategoryMin + '"><input type="checkbox" id="' + piiCategoryMin + '" data-id="' +
-                                piiCategory + '" data-piiCategoryId="' + ee.piiCategoryId + '" data-purposeId="' + e.purposeId + '"' +
-                                'data-mandetoryPiiCategory="' + ee.mandatory + '" name="" value="">' + ee.displayName + '</label></span>';
-                        }
-                        templateString = templateString.replaceAll(piiCategory, piiCategoryInputTemplate);
-                    });
-                });
-
-                $(".consent-statement").html(templateString);
-            }
-
-            // Render the consent purposes through row view.
-            function renderReceiptDetailsFromRows(data) {
-                var rowTemplate =
-                    '{{#purposes}}' +
-                    '<div class="ui bulleted list">' +
-                    '<div class="item"><span>{{purpose}} {{#if description}}<span id="description-{{purposeId}}" data-tooltip="{{description}}"" data-inverted=""><i class="info circle icon"></i></span>{{/if}}</span></div></div>' +
-                    '<div class="ui form">' +
-                    '{{#grouped_each 2 piiCategories}}' +
-                    '{{#each this }}' +
-                    '<div class="{{#if mandatory}}required{{/if}} field">'+
-                    '<div class="ui checkbox">' +
-                    '<input type="checkbox" name="switch" id="consent-checkbox-{{../../purposeId}}-{{piiCategoryId}}" {{#if mandatory}}required{{/if}} />' +
-                    '<label for="consent-checkbox-{{../../purposeId}}-{{piiCategoryId}}" data-piicategoryid="{{piiCategoryId}}" data-mandetorypiicatergory="{{mandatory}}" data-purposeid="{{../../purposeId}}">' +
-                    '<span>{{#if displayName}}{{displayName}}{{else}}{{piiCategory}}{{/if}}'+
-                    '</label></div>' +
-                    '</div>'+
-                    '{{/each}}' +
-                    '{{/grouped_each}}' +
-                    '</div></div>' +
-                    '{{/purposes}}';
-
-                var rows = Handlebars.compile(rowTemplate);
-                var rowsRendered = rows(data);
-
-                $("#row-container").html(rowsRendered);
-                $("#description").popup();
-            }
-
             $(".form-info").popup();
 
             $.fn.preventDoubleSubmission = function() {
@@ -2066,10 +1604,6 @@
                         var elements = document.getElementsByTagName("input");
                         var error_msg = $("#error-msg");
                         var server_error_msg = $("#server-error-msg");
-
-                        if (<%=isEmailUsernameEnabled%> && <%=hideUsernameFieldWhenEmailAsUsernameIsEnabled%>) {
-                            alphanumericUsernameUserInput.value = usernameUserInput.value;
-                        }
 
                         if (!<%=isUsernameValidationEnabled%>) {
                             if (showUsernameRegexValidationStatus()) {
@@ -2143,11 +1677,24 @@
                             error_msg = $("#server-error-msg");
                         }
 
-                        handleConsentPurpose();
+                        <%
+                        if(reCaptchaEnabled) {
+                            %>
+                            var resp = $("[name='g-recaptcha-response']")[0].value;
+                            if (resp.trim() == '') {
+                                error_msg.text("<%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle,
+                                    "Please.select.reCaptcha")%>");
+                                error_msg.show();
+                                $("html, body").animate({scrollTop: error_msg.offset().top}, 'slow');
+                                validInput = false;
+                            }
+                            <%
+                        }
+                        %>
 
                         // If the input is not valid,
                         // This will return false and prevent form submission.
-                        if (!validInput || !validConsentPurpose) {
+                        if (!validInput) {
                             return false;
                         }
 
@@ -2182,10 +1729,6 @@
                 var elements = document.getElementsByTagName("input");
                 var error_msg = $("#error-msg");
                 var server_error_msg = $("#server-error-msg");
-
-                if (<%=isEmailUsernameEnabled%> && <%=hideUsernameFieldWhenEmailAsUsernameIsEnabled%>) {
-                    alphanumericUsernameUserInput.value = usernameUserInput.value;
-                }
 
                 // Username validation.
                 if (!<%=isUsernameValidationEnabled%>) {
@@ -2251,11 +1794,22 @@
                     $("#error-msg").hide();
                     error_msg = $("#server-error-msg");
                 }
-
-                handleConsentPurpose();
-
+                <%
+                    if(reCaptchaEnabled) {
+                        %>
+                        var resp = $("[name='g-recaptcha-response']")[0].value;
+                        if (resp.trim() == '') {
+                            error_msg.text("<%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle,
+                                "Please.select.reCaptcha")%>");
+                            error_msg.show();
+                            $("html, body").animate({scrollTop: error_msg.offset().top}, 'slow');
+                            validInput = false;
+                        }
+                        <%
+                    }
+                %>
                 // Do the form submission if the inputs are valid.
-                if (validInput && validConsentPurpose) {
+                if (validInput) {
                     $form.data("submitted", true);
                     document.getElementById("register").submit();
                 } else {
@@ -2494,7 +2048,7 @@
 
                     return false;
             } else {
-                var usernamePattern = /(^[\u00C0-\u00FFa-zA-Z0-9](?:(?![!#$'+=^_.{|}~\-&]{2})[\u00C0-\u00FF\w!#$'+=^_.{|}~\-&]){0,63}(?=[\u00C0-\u00FFa-zA-Z0-9_]).\@(?![+.\-_])(?:(?![.+\-_]{2})[\w.+\-]){0,245}(?=[\u00C0-\u00FFa-zA-Z0-9]).\.[a-zA-Z]{2,10})$/;
+                var usernamePattern = /^([\u00C0-\u00FFa-zA-Z0-9_\+\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,10})$/;
                 if (!usernamePattern.test(usernameUserInput.value.trim()) && (emailRequired || !isAlphanumericUsernameEnabled())) {
                     username_error_msg_text.text("<%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "Please.enter.valid.email")%>")
                     username_error_msg.show();

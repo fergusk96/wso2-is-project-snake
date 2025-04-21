@@ -17,9 +17,9 @@
     "icon": "./images/user-attributes-template.png"
   },
 
-  "ProgressiveEnrollment": {
-    "displayName": "Progressive Enrollment",
+  "PasskeyEnrollment": {
+    "displayName": "Passkey Enrollment",
     "order": 4,
-    "icon": "./images/progressive-enrollment-template.png"
+    "icon": "./images/passkey-enrollment-template.png"
   }
 }

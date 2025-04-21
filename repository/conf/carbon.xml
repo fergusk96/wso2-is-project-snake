@@ -36,7 +36,7 @@
     <!--
        Product Version
     -->
-    <Version>7.1.0</Version>
+    <Version>7.0.0</Version>
 
     <!--
        Host name or IP address of the machine hosting this server
@@ -726,12 +726,4 @@
 
     <!-- Enable/Disable the deprecation banner in the management console -->
     <ManagementConsoleDeprecationBannerEnabled>false</ManagementConsoleDeprecationBannerEnabled>
-
-    <KeyStoreDataPersistenceManager>
-        <!-- Keystore data storage type-->
-        <DataStorageType>database</DataStorageType>
-        <!-- Include a data source name from the set of data sources defined in master-datasources.xml -->
-        <DataSourceName>jdbc/SHARED_DB</DataSourceName>
-    </KeyStoreDataPersistenceManager>
-
 </Server>

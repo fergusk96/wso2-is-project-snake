@@ -16,7 +16,6 @@
   ~ under the License.
 --%>
 
-<%@ page import="org.apache.commons.text.StringEscapeUtils" %>
 <%@ page import="org.apache.cxf.jaxrs.client.JAXRSClientFactory" %>
 <%@ page import="org.apache.cxf.jaxrs.provider.json.JSONProvider" %>
 <%@ page import="org.apache.http.HttpStatus" %>
@@ -44,7 +43,6 @@
 
 <%!
     private boolean isMultiAuthAvailable(String multiOptionURI) {
-
         boolean isMultiAuthAvailable = true;
         if (multiOptionURI == null || multiOptionURI.equals("null")) {
             isMultiAuthAvailable = false;
@@ -56,7 +54,7 @@
                 String authenticators = multiOptionURI.substring(authenticatorIndex + 15);
                 int authLastIndex = authenticators.indexOf("&") != -1 ? authenticators.indexOf("&") : authenticators.length();
                 authenticators = authenticators.substring(0, authLastIndex);
-                List<String> authList = Arrays.asList(authenticators.split("%3B"));
+                List<String> authList = new ArrayList<>(Arrays.asList(authenticators.split("%3B")));
                 if (authList.size() < 2) {
                     isMultiAuthAvailable = false;
                 }
@@ -106,8 +104,6 @@
 %>
 
 <%
-    final String IS_SAAS_APP = "isSaaSApp";
-
     String clientId = Encode.forJavaScriptBlock(request.getParameter("client_id"));
     String sp = Encode.forJava(request.getParameter("sp"));
     String spId = "";
@@ -158,11 +154,6 @@
 %>
 
 <script>
-
-    function onCompleted() {
-        $("#identifierForm").submit();
-    }
-
     var insightsAppIdentifier = "<%=clientId%>";
     var insightsTenantIdentifier = "<%=userTenant%>";
 
@@ -183,69 +174,56 @@
                 hideUsernameInvalidMessage();
             });
         }
-
-        $.fn.preventDoubleSubmission = function () {
-            $(this).on("submit", function (e) {
-                var $form = $(this);
-                e.preventDefault();
-                var userName = document.getElementById("username");
-                var usernameUserInput = document.getElementById("usernameUserInput");
-
-                if (usernameUserInput) {
-                    var sanitizedUsername = usernameUserInput.value.trim();
-
-                    if (sanitizedUsername.length <= 0) {
-                        showUsernameInvalidMessage();
-                    }
-
-                    userName.value = sanitizedUsername.toLowerCase();
-                }
-
-                var genericReCaptchaEnabled = "<%=genericReCaptchaEnabled%>";
-                if (genericReCaptchaEnabled === "true") {
-                    if (!grecaptcha.getResponse()) {
-                        grecaptcha.execute();
-                        return;
-                    }
-                }
-
-                if (username.value) {
-                    trackEvent("authentication-portal-identifierauth-click-continue", {
-                        "app": insightsAppIdentifier,
-                        "tenant": insightsTenantIdentifier !== "null" ? insightsTenantIdentifier : ""
-                    });
-                    var $form = $(this);
-
-                    // store the username in session storage
-                    sessionStorage.setItem("username", username.value);
-
-                    $.ajax({
-                        type: "GET",
-                        url: "<%= Encode.forJavaScriptBlock(loginContextRequestUrl) %>",
-                        xhrFields: { withCredentials: true },
-                        success: function (data) {
-                            if (data && data.status === "redirect" && data.redirectUrl && data.redirectUrl.length > 0) {
-                                window.location.href = data.redirectUrl;
-                            } else if ($form.data('submitted') !== true) {
-                                $form.data('submitted', true);
-                                document.getElementById("identifierForm").submit();
-                            } else {
-                                console.warn("Prevented a possible double submit event.");
-                            }
-                        },
-                        cache: false
-                    });
-                }
-            });
-            return this;
-        };
-        $('#identifierForm').preventDoubleSubmission();
     });
 
     trackEvent("page-visit-authentication-portal-identifierauth", {
         "app": insightsAppIdentifier,
         "tenant": insightsTenantIdentifier !== "null" ? insightsTenantIdentifier : ""
     });
+
+    function submitIdentifier (e) {
+        e.preventDefault();
+        var userName = document.getElementById("username");
+        var usernameUserInput = document.getElementById("usernameUserInput");
+
+        if (usernameUserInput) {
+            var sanitizedUsername = usernameUserInput.value.trim();
+
+            if (sanitizedUsername.length <= 0) {
+                showUsernameInvalidMessage();
+            }
+
+            userName.value = sanitizedUsername.toLowerCase();
+        }
+
+        if (username.value) {
+            trackEvent("authentication-portal-identifierauth-click-continue", {
+                "app": insightsAppIdentifier,
+                "tenant": insightsTenantIdentifier !== "null" ? insightsTenantIdentifier : ""
+            });
+            var $form = $(this);
+
+            // store the username in session storage
+            sessionStorage.setItem("username", username.value);
+
+            $.ajax({
+                type: "GET",
+                url: "<%= Encode.forJavaScriptBlock(loginContextRequestUrl) %>",
+                xhrFields: { withCredentials: true },
+                success: function (data) {
+                    if (data && data.status === "redirect" && data.redirectUrl && data.redirectUrl.length > 0) {
+                        window.location.href = data.redirectUrl;
+                    } else if ($form.data('submitted') !== true) {
+                        $form.data('submitted', true);
+                        document.getElementById("identifierForm").submit();
+                    } else {
+                        console.warn("Prevented a possible double submit event.");
+                    }
+                },
+                cache: false
+            });
+        }
+    }
 
     // Function to show error message when username is empty.
     function showUsernameInvalidMessage() {
@@ -282,32 +260,9 @@
     <% } %>
 
     <div class="field">
-     <% if (StringUtils.equals(tenantForTheming, IdentityManagementEndpointConstants.SUPER_TENANT) &&
-        Boolean.parseBoolean(request.getParameter(IS_SAAS_APP))) { %>
-        
-            <label><%=AuthenticationEndpointUtil.i18n(resourceBundle, "email")%></label>
-            <div class="ui fluid left icon input">
-                <input
-                    type="text"
-                    id="usernameUserInput"
-                    value=""
-                    name="usernameUserInput"
-                    placeholder="<%=AuthenticationEndpointUtil.i18n(resourceBundle, "enter.your.email")%>"
-                    required />
-                <i aria-hidden="true" class="envelope outline icon"></i>
-            </div>
-            <div class="mt-1" id="usernameError" style="display: none;">
-                <i class="red exclamation circle fitted icon"></i>
-                <span class="validation-error-message" id="usernameErrorText">
-                    <%=AuthenticationEndpointUtil.i18n(resourceBundle, "username.cannot.be.empty")%>
-                </span>
-            </div>
-            <input id="username" name="username" type="hidden" value="">
-            <input id="authType" name="authType" type="hidden" value="idf">
-        <% } else {
-            if (isMultiAttributeLoginEnabledInTenant) { %>
+        <% if (isMultiAttributeLoginEnabledInTenant) { %>
             <label><%=usernameLabel %></label>
-            <% } else {%>
+        <% } else { %>
             <label><%=AuthenticationEndpointUtil.i18n(resourceBundle, usernameLabel)%></label>
         <% } %>
         <div class="ui fluid left icon input">
@@ -316,6 +271,7 @@
                 id="usernameUserInput"
                 value=""
                 name="usernameUserInput"
+                maxlength="50"
                 placeholder="<%=AuthenticationEndpointUtil.i18n(resourceBundle, usernamePlaceHolder)%>"
                 required
             />
@@ -331,37 +287,44 @@
         <input id="authType" name="authType" type="hidden" value="idf">
         <input id="multiOptionURI" type="hidden" name="multiOptionURI"
             value='<%=Encode.forHtmlAttribute(request.getParameter("multiOptionURI"))%>' />
-    <% } %>
     </div>
     <%
-    if (genericReCaptchaEnabled) { 
-        String reCaptchaKey = CaptchaUtil.reCaptchaSiteKey();
+        if (reCaptchaEnabled) {
+            String reCaptchaKey = CaptchaUtil.reCaptchaSiteKey();
+            String reCaptchaType = CaptchaUtil.getReCaptchaType();
+            if (!"recaptcha-enterprise".equals(reCaptchaType)) {
     %>
-        <div class="field">
-            <div class="g-recaptcha"
-                data-size="invisible"
-                data-callback="onCompleted"
-                data-action="login"
-                data-sitekey="<%=Encode.forHtmlContent(reCaptchaKey)%>">
-            </div>
+    <div class="field">
+        <div class="g-recaptcha"
+            data-sitekey="<%=Encode.forHtmlAttribute(reCaptchaKey)%>"
+            data-theme="light"
+        >
         </div>
-    <% } %>
+    </div>
+    <%
+            }
+        }
+    %>
 
     <input type="hidden" name="sessionDataKey" value='<%=Encode.forHtmlAttribute
         (request.getParameter("sessionDataKey"))%>'/>
 
     <div class="mt-4">
         <div class="buttons">
-            <button type="submit" class="ui primary fluid large button" role="button" data-testid="identifier-auth-continue-button">
-                <%=StringEscapeUtils.escapeHtml4(AuthenticationEndpointUtil.i18n(resourceBundle, "continue"))%>
-            </button>
+            <input
+                type="submit"
+                onclick="submitIdentifier(event)"
+                class="ui primary large fluid button"
+                role="button"
+                data-testid="identifier-auth-continue-button"
+                value="<%=AuthenticationEndpointUtil.i18n(resourceBundle, "continue")%>" />
         </div>
     </div>
     <div class="ui divider hidden"></div>
     <div class="align-center">
         <%
             String multiOptionURI = Encode.forJava(request.getParameter("multiOptionURI"));
-            if (multiOptionURI != null && AuthenticationEndpointUtil.isValidMultiOptionURI(multiOptionURI) &&
+            if (multiOptionURI != null && AuthenticationEndpointUtil.isValidURL(multiOptionURI) &&
             isMultiAuthAvailable(multiOptionURI)) {
         %>
             <a class="ui primary basic button link-button" id="goBackLink"
@@ -375,7 +338,7 @@
 </form>
 <%
 if (!StringUtils.equals("CONSOLE",clientId)
-        && !StringUtils.equals("MY_ACCOUNT",clientId) && !isMagicLink &&
+        && !StringUtils.equals("MY_ACCOUNT",clientId) && isFederatedOptionsAvailable && !isMagicLink &&
         isSelfSignUpEnabledInTenant && isSelfSignUpEnabledInTenantPreferences) {
         String urlParameters = (String) request.getAttribute(JAVAX_SERVLET_FORWARD_QUERY_STRING);
 %>

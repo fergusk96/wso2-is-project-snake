@@ -28,18 +28,18 @@
     {% if registry.use_shared_db_as_datasource is sameas true %}
         <dataSource>jdbc/SHARED_DB</dataSource>
     {% else %}
-        <dataSource>{{registry.local_datasource}}</dataSource>
+        <dataSource>jdbc/WSO2CarbonDB</dataSource>
     {% endif %}
     </dbConfig>
     {% if registry.enable_mount is not defined or registry.enable_mount is sameas true %}
     <dbConfig name="govregistry">
-        <dataSource>{{registry.gov_datasource}}</dataSource>
+        <dataSource>jdbc/SHARED_DB</dataSource>
     </dbConfig>
     <dbConfig name="configregistry">
     {% if database.config is defined%}
         <dataSource>jdbc/WSO2CONFIG_DB</dataSource>
     {% else %}
-        <dataSource>{{registry.config_datasource}}</dataSource>
+        <dataSource>jdbc/SHARED_DB</dataSource>
     {% endif %}
     </dbConfig>
     <remoteInstance url="https://{{server.hostname}}">
@@ -122,6 +122,11 @@
     <versionResourcesOnChange>{{versioning_configuration.enable_version_resources_on_change}}</versionResourcesOnChange>
     <!-- NOTE: You can edit the options under "StaticConfiguration" only before the
      startup. -->
+    <handler class="org.wso2.carbon.identity.entitlement.policy.finder.registry.RegistryPolicyHandler">
+        <filter class="org.wso2.carbon.identity.entitlement.policy.finder.registry.RegistryPolicyMediaTypeMatcher">
+            <property name="mediaType">application/xacml-policy+xml</property>
+        </filter>
+    </handler>
     <staticConfiguration>
         <versioningProperties>{{versioning_configuration.enable_versioning_properties}}</versioningProperties>
         <versioningComments>{{versioning_configuration.enable_versioning_comments}}</versioningComments>

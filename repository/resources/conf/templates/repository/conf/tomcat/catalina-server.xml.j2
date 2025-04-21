@@ -20,21 +20,16 @@
 
 <Server port="8005" shutdown="SHUTDOWN" xmlns:svns="http://org.wso2.securevault/configuration">
 
-    {% if transport.https.openssl.enabled is sameas true %}
-    <Listener className="org.apache.catalina.core.AprLifecycleListener" SSLEngine="on" />
-    {% endif %}
-
     <Service className="org.wso2.carbon.tomcat.ext.service.ExtendedStandardService" name="Catalina">
 
+
        {% for transport in custom_transport %}
-       {% if transport != custom_transport.x509 %}
         <Connector
             {% for property_name,property_value in transport.properties.items() %}
                 {{property_name}}="{{property_value}}"
             {% endfor %}
         >
         </Connector>
-       {% endif %}
        {% endfor %}
        <!--
             optional attributes:
@@ -54,11 +49,7 @@
             Added sslEnabledProtocols="TLSv1,TLSv1.1,TLSv1.2" for poodle vulnerability fix
        -->
        {% if transport.https.enabled is sameas true %}
-       {% if transport.https.openssl.enabled is sameas true %}
-       <Connector protocol="org.apache.coyote.http11.Http11AprProtocol"
-       {% else %}
        <Connector protocol="org.apache.coyote.http11.Http11NioProtocol"
-       {% endif %}
        {% for property_name,property_value in transport.https.properties.items() %}
                   {{property_name}}="{{property_value}}"
                   {% endfor %}
@@ -76,15 +67,6 @@
            </SSLHostConfig>
        </Connector>
        {% endif %}
-
-       {% if custom_transport.x509 %}
-        <Connector
-        {% for property_name,property_value in custom_transport.x509.properties.items() %}
-                        {{property_name}}="{{property_value}}"
-        {% endfor %}
-        >
-        </Connector>
-        {% endif %}
 
         <Engine name="Catalina" defaultHost="localhost">
 
@@ -117,7 +99,6 @@
                        />
                 <Valve className="org.wso2.carbon.tomcat.ext.valves.RequestEncodingValve" encoding="UTF-8"/>
                 <Valve className="org.wso2.carbon.identity.organization.management.tomcat.ext.tenant.resolver.CarbonContextCreatorValve"/>
-                <Valve className="org.wso2.carbon.identity.core.context.valve.IdentityContextCreatorValve"/>
                 {% if http_access_log.useLogger is sameas true %}
                 <Valve className="org.wso2.carbon.tomcat.ext.valves.ConfigurableLoggerAccessLogValve"
                                     pattern="{{http_access_log.pattern}}"/>
@@ -126,10 +107,7 @@
                        prefix="{{http_access_log.prefix}}" suffix="{{http_access_log.suffix}}" pattern="{{http_access_log.pattern}}"/>
                 {% endif %}
                 <Valve className="org.wso2.carbon.extension.identity.x509Certificate.valve.X509CertificateAuthenticationValve"/>
-                <Valve
-                    className="org.wso2.carbon.tomcat.ext.valves.CarbonStuckThreadDetectionValve"
-                    threshold="{{catalinaValves.CarbonStuckThreadDetectionValve.threshold | default('600')}}"
-                />
+                <Valve className="org.wso2.carbon.tomcat.ext.valves.CarbonStuckThreadDetectionValve" threshold="600"/>
                 <Valve className="org.wso2.carbon.tomcat.ext.valves.CompositeValve"/>
 
                 <!-- OAuthAppTenantResolverValve is required to be invoked when tenant qualified urls are disabled. This should be invoked before the AuthenticationValve -->
@@ -143,6 +121,7 @@
                 <Valve className="org.wso2.carbon.identity.cors.valve.CORSValve"/>
                 <Valve className="org.wso2.carbon.tomcat.ext.valves.SameSiteCookieValve"/>
                 <Valve className="org.wso2.carbon.identity.context.rewrite.valve.OrganizationContextRewriteValve"/>
+                <Valve className="org.wso2.carbon.identity.context.rewrite.valve.TenantContextRewriteValve"/>
                 <!--Error pages -->
                 <Valve className="org.apache.catalina.valves.ErrorReportValve" showServerInfo="false" showReport="false"/>
                 {% for valve in catalina.valves %}
@@ -152,7 +131,6 @@
                     {% endfor %}
                  />
                 {% endfor %}
-                <Valve className="org.wso2.carbon.identity.context.rewrite.valve.TenantContextRewriteValve"/>
             </Host>
         </Engine>
     </Service>

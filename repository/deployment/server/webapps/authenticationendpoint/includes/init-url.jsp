@@ -147,13 +147,7 @@
     if (Boolean.parseBoolean(application.getInitParameter("IsHostedExternally"))) {
         identityServerEndpointContextParam = application.getInitParameter("IdentityServerEndpointContextURL");
     } else {
-        spAppName = request.getParameter(SERVICE_PROVIDER_NAME_SHORT);
-        ServiceURLBuilder serviceUrlBuilder = ServiceURLBuilder.create().setTenant(tenantDomain);
-        if ("My Account".equals(spAppName) || "Console".equals(spAppName)) {
-            serviceUrlBuilder.setSkipDomainBranding(true);
-        } 
-    
-        identityServerEndpointContextParam = serviceUrlBuilder.build().getAbsolutePublicURL();
+        identityServerEndpointContextParam = ServiceURLBuilder.create().setTenant(tenantDomain).build().getAbsolutePublicURL();
     }
 
     if (StringUtils.isNotBlank(identityServerEndpointContextParam)) {

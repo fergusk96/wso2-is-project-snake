@@ -1,10 +1,4 @@
 {
-    {% if myaccount.__experimental__platform_idp is defined %}
-    "__experimental__platformIdP" : {
-        "enabled": {{ myaccount.__experimental__platform_idp.enabled }},
-        "homeRealmId": "{{ myaccount.__experimental__platform_idp.homeRealmId }}"
-    },
-    {% endif %}
     "consoleApp": {
         {% if myaccount.applications.console_app.configs is defined %}
         {% for key, value in myaccount.applications.console_app.configs.items() %}
@@ -95,6 +89,9 @@
     {% if myaccount.super_tenant_proxy_name is defined %}
         "superTenantProxy" : "{{ myaccount.super_tenant_proxy_name }}",
     {% endif %}
+    {% if tenant_context.enable_tenant_qualified_urls is defined && tenant_context.require_super_tenant_in_urls is defined %}
+    "requireSuperTenantInUrls" : {{ tenant_context.enable_tenant_qualified_urls && tenant_context.require_super_tenant_in_urls }},
+    {% endif %}
     {% if myaccount.idp_configs is defined %}
     "idpConfigs": {
         {% if myaccount.idp_configs.items() is defined %}
@@ -121,9 +118,6 @@
     {% elif legacy_authz_runtime.enable is defined %}
     "isSaas": {{ legacy_authz_runtime.enable }},
     {% endif %}
-    {% if myaccount.proxy_context_path is defined %}
-    "proxyContextPath": "{{ myaccount.proxy_context_path }}",
-    {% endif %}
     "session": {
         {% if myaccount.session.params is defined %}
             {% for param, value in myaccount.session.params.items() %}
@@ -131,12 +125,8 @@
             {% endfor %}
         {% endif %}
     },
-    {% if tenant_context is defined %}
-    "tenantContext": {
-        "enableTenantQualifiedUrls": {{ tenant_context.enable_tenant_qualified_urls | default(true) }},
-        "requireSuperTenantInUrls": {{ tenant_context.enable_tenant_qualified_urls && tenant_context.require_super_tenant_in_urls | default(false) }},
-        "requireSuperTenantInAppUrls": {{ tenant_context.require_super_tenant_in_app_urls | default(true) }}
-    },
+    {% if legacy_authz_runtime.enable is defined %}
+        "legacyAuthzRuntime": {{ legacy_authz_runtime.enable }},
     {% endif %}
     "ui": {
         "announcements": [
@@ -181,12 +171,6 @@
                 {% endfor %}
                 {% endif %}
         },
-        {% if user_store.properties.DomainName is defined %}
-        "primaryUserStoreDomainName": "{{ user_store.properties.DomainName }}",
-        {% endif %}
-        {% if identity_mgt.user_claim_update.enable_multiple_emails_and_mobile_numbers is defined %}
-        "isMultipleEmailsAndMobileNumbersEnabled": {{ identity_mgt.user_claim_update.enable_multiple_emails_and_mobile_numbers }},
-        {% endif %}
         "features": {
             {% if myaccount.extensions.features is defined %}
             {% for name, feature in myaccount.extensions.features.items() %}
@@ -380,9 +364,6 @@
             {% endfor %}
             {% endif %}
         },
-        {% if scim2.custom_user_schema_uri is defined %}
-        "customUserSchemaURI": "{{ scim2.custom_user_schema_uri }}",
-        {% endif %}
         "privacyPolicyConfigs": {
             {% if myaccount.privacy_policy_configs.items() is defined %}
             {% for key, value in myaccount.privacy_policy_configs.items() %}

@@ -1,5 +1,5 @@
 <%--
-  ~ Copyright (c) 2016-2025, WSO2 LLC. (https://www.wso2.com).
+  ~ Copyright (c) 2016-2023, WSO2 LLC. (https://www.wso2.com).
   ~
   ~ WSO2 LLC. licenses this file to you under the Apache License,
   ~ Version 2.0 (the "License"); you may not use this file except
@@ -22,7 +22,7 @@
 <%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page import="org.owasp.encoder.Encode" %>
 <%@ page import="org.wso2.carbon.core.SameSiteCookie" %>
-<%@ page import="org.wso2.carbon.identity.core.ServiceURLBuilder" %>
+<%@ page import="org.wso2.carbon.core.util.SignatureUtil" %>
 <%@ page import="org.wso2.carbon.identity.mgt.constants.SelfRegistrationStatusCodes" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementEndpointConstants" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.IdentityManagementServiceUtil" %>
@@ -48,10 +48,6 @@
 <%@ page import="org.wso2.carbon.identity.core.util.IdentityUtil" %>
 <%@ page import="javax.servlet.http.Cookie" %>
 <%@ page import="org.wso2.carbon.identity.mgt.endpoint.util.client.PreferenceRetrievalClientException" %>
-<%@ page import="com.google.gson.Gson" %>
-<%@ page import="com.google.gson.JsonObject" %>
-<%@ page import="org.apache.commons.logging.Log" %>
-<%@ page import="org.apache.commons.logging.LogFactory" %>
 
 <%-- Localization --%>
 <jsp:directive.include file="includes/localize.jsp"/>
@@ -63,7 +59,6 @@
 <jsp:directive.include file="includes/branding-preferences.jsp"/>
 
 <%
-    Log log = LogFactory.getLog(this.getClass());
     String ERROR_MESSAGE = "errorMsg";
     String ERROR_CODE = "errorCode";
     boolean error = IdentityManagementEndpointUtil.getBooleanValue(request.getAttribute("error"));
@@ -72,22 +67,18 @@
     String SELF_REGISTRATION_WITHOUT_VERIFICATION_PAGE = "* self-registration-without-verification.jsp";
     String passwordPatternErrorCode = "20035";
     String usernamePatternErrorCode = "20045";
-    String duplicateClaimValueErrorCode = "60007";
-    String usernameAlreadyExistsErrorCode = "20030";
     String AUTO_LOGIN_COOKIE_NAME = "ALOR";
     String AUTO_LOGIN_COOKIE_DOMAIN = "AutoLoginCookieDomain";
-    String AUTO_LOGIN_FLOW_TYPE = "SELF_SIGNUP";
+    String AUTO_LOGIN_FLOW_TYPE = "SIGNUP";
     PreferenceRetrievalClient preferenceRetrievalClient = new PreferenceRetrievalClient();
     Boolean isAutoLoginEnable = preferenceRetrievalClient.checkAutoLoginAfterSelfRegistrationEnabled(tenantDomain);
     Boolean isSelfRegistrationLockOnCreationEnabled = preferenceRetrievalClient.checkSelfRegistrationLockOnCreation(tenantDomain);
-    Boolean isShowUsernameUnavailabilityEnabled = preferenceRetrievalClient.checkSelfRegistrationShowUsernameUnavailability(tenantDomain);
-    Boolean isAccountVerificationEnabled = preferenceRetrievalClient.checkSelfRegistrationSendConfirmationOnCreation(tenantDomain);
 
     boolean isSelfRegistrationWithVerification =
             Boolean.parseBoolean(request.getParameter("isSelfRegistrationWithVerification"));
     boolean allowchangeusername = Boolean.parseBoolean(request.getParameter("allowchangeusername"));
     String userLocaleForClaim = request.getHeader("Accept-Language");
-    String username = Encode.forJava(request.getParameter("username"));
+    String username = request.getParameter("username");
     String password = request.getParameter("password");
     String sessionDataKey = request.getParameter("sessionDataKey");
     String sp = Encode.forJava(request.getParameter("sp"));
@@ -100,8 +91,6 @@
     boolean isSaaSApp = Boolean.parseBoolean(request.getParameter("isSaaSApp"));
     boolean skipSignUpEnableCheck = Boolean.parseBoolean(request.getParameter("skipsignupenablecheck"));
     String policyURL = privacyPolicyURL;
-    String tenantAwareUsername = "";
-    boolean isDetailedResponseEnabled = Boolean.parseBoolean(application.getInitParameter("isSelfRegistrationDetailedApiResponseEnabled"));
 
     if (error) {
         request.setAttribute("error", true);
@@ -217,9 +206,8 @@
     }
 
     Integer userNameValidityStatusCode = usernameValidityResponse.getInt("code");
-    String errorCode = String.valueOf(userNameValidityStatusCode);
     if (!SelfRegistrationStatusCodes.CODE_USER_NAME_AVAILABLE.equalsIgnoreCase(userNameValidityStatusCode.toString())) {
-        if (allowchangeusername) {
+        if (allowchangeusername || !skipSignUpEnableCheck) {
             request.setAttribute("error", true);
             request.setAttribute("errorCode", userNameValidityStatusCode);
             if (usernameValidityResponse.has("message")) {
@@ -228,22 +216,8 @@
                 }
             }
             request.getRequestDispatcher("register.do").forward(request, response);
-        } else if (!skipSignUpEnableCheck
-            && SelfRegistrationStatusCodes.ERROR_CODE_USER_ALREADY_EXISTS.equalsIgnoreCase(errorCode)) {
-            if (isAccountVerificationEnabled && !isShowUsernameUnavailabilityEnabled) {
-                request.setAttribute("callback", callback);
-                if (StringUtils.isNotBlank(srtenantDomain)) {
-                    request.setAttribute("srtenantDomain", srtenantDomain);
-                }
-                request.setAttribute("sessionDataKey", sessionDataKey);
-                request.getRequestDispatcher("self-registration-complete.jsp").forward(request, response);
-            } else {
-                request.setAttribute("error", true);
-                request.setAttribute("errorCode", userNameValidityStatusCode);
-                request.getRequestDispatcher("register.do").forward(request, response);
-            }
-            return;
         } else {
+            String errorCode = String.valueOf(userNameValidityStatusCode);
             if (SelfRegistrationStatusCodes.ERROR_CODE_INVALID_TENANT.equalsIgnoreCase(errorCode)) {
                 errorMsg = "Invalid tenant domain - " + user.getTenantDomain() + ".";
             } else if (SelfRegistrationStatusCodes.ERROR_CODE_USER_ALREADY_EXISTS.equalsIgnoreCase(errorCode)) {
@@ -295,7 +269,7 @@
     List<Claim> claimsList;
     UsernameRecoveryApi usernameRecoveryApi = new UsernameRecoveryApi();
     try {
-        claimsList = usernameRecoveryApi.claimsGet(user.getTenantDomain(), true, "selfRegistration");
+        claimsList = usernameRecoveryApi.claimsGet(user.getTenantDomain());
         if (claimsList != null) {
             claims = claimsList.toArray(new Claim[claimsList.size()]);
         }
@@ -375,34 +349,12 @@
         }
 
         SelfRegisterApi selfRegisterApi = new SelfRegisterApi();
-        String responseContent = selfRegisterApi.mePostCall(selfUserRegistrationRequest, requestHeaders);
-
-        // Extract userId from response if available
-        String userId = "";
-        if (isDetailedResponseEnabled && StringUtils.isNotBlank(responseContent)) {
-            try {
-                Gson gson = new Gson();
-                JsonObject jsonResponse = gson.fromJson(responseContent, JsonObject.class);
-                if (jsonResponse.has("userId")) {
-                    userId = jsonResponse.get("userId").getAsString();
-                }
-            } catch (Exception e) {
-                log.error("Error extracting userId from successful user registration response", e);
-            }
-        }
-
+        selfRegisterApi.mePostCall(selfUserRegistrationRequest, requestHeaders);
         // Add auto login cookie.
         if (isAutoLoginEnable && !isSelfRegistrationLockOnCreationEnabled) {
-            if (StringUtils.isNotEmpty(user.getRealm())) {
-                tenantAwareUsername = user.getRealm() + "/" + username + "@" + user.getTenantDomain();
-            } else {
-                tenantAwareUsername = username + "@" + user.getTenantDomain();
-            }
-            String hostName = ServiceURLBuilder.create().build().getProxyHostName();
-            String cookieDomain = IdentityUtil.getRootDomain(hostName);
-
+            String cookieDomain = application.getInitParameter(AUTO_LOGIN_COOKIE_DOMAIN);
             JSONObject contentValueInJson = new JSONObject();
-            contentValueInJson.put("username", tenantAwareUsername);
+            contentValueInJson.put("username", user.getUsername());
             contentValueInJson.put("createdTime", System.currentTimeMillis());
             contentValueInJson.put("flowType", AUTO_LOGIN_FLOW_TYPE);
             if (StringUtils.isNotBlank(cookieDomain)) {
@@ -412,7 +364,7 @@
 
             JSONObject cookieValueInJson = new JSONObject();
             cookieValueInJson.put("content", content);
-            String signature = Base64.getEncoder().encodeToString(IdentityUtil.signWithTenantKey(content, user.getTenantDomain()));
+            String signature = Base64.getEncoder().encodeToString(SignatureUtil.doSignature(content));
             cookieValueInJson.put("signature", signature);
             String cookieValue = Base64.getEncoder().encodeToString(cookieValueInJson.toString().getBytes());
 
@@ -424,19 +376,16 @@
         if (StringUtils.isNotBlank(srtenantDomain)) {
             request.setAttribute("srtenantDomain", srtenantDomain);
         }
-        if (isDetailedResponseEnabled && StringUtils.isNotBlank(userId)) {
-            request.setAttribute("userId", userId);
-        }
         request.setAttribute("sessionDataKey", sessionDataKey);
         request.getRequestDispatcher("self-registration-complete.jsp").forward(request, response);
 
     } catch (Exception e) {
         IdentityManagementEndpointUtil.addErrorInformation(request, e);
-        String errorCode1 = (String) request.getAttribute("errorCode");
+        String errorCode = (String) request.getAttribute("errorCode");
         String errorMsg1 = (String) request.getAttribute("errorMsg");
-        if (passwordPatternErrorCode.equals(errorCode1) || duplicateClaimValueErrorCode.equals(errorCode1)) {
-            String i18Resource = IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, errorCode1);
-            if (!i18Resource.equals(errorCode1)) {
+        if (passwordPatternErrorCode.equals(errorCode)) {
+            String i18Resource = IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, errorCode);
+            if (!i18Resource.equals(errorCode)) {
                 request.setAttribute(ERROR_MESSAGE, i18Resource);
             }
             if (isSelfRegistrationWithVerification) {
@@ -447,20 +396,13 @@
                         response);
             }
             return;
-        } else if (usernamePatternErrorCode.equals(errorCode1)) {
-            String i18Resource = IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, errorCode1);
-            if (!i18Resource.equals(errorCode1)) {
+        } else if (usernamePatternErrorCode.equals(errorCode)) {
+            String i18Resource = IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, errorCode);
+            if (!i18Resource.equals(errorCode)) {
                 request.setAttribute(ERROR_MESSAGE, i18Resource);
             }
             request.getRequestDispatcher("register.do").forward(request, response);
             return;
-        } else if (isAccountVerificationEnabled && !isShowUsernameUnavailabilityEnabled && usernameAlreadyExistsErrorCode.equals(errorCode1)) {
-            request.setAttribute("callback", callback);
-            if (StringUtils.isNotBlank(srtenantDomain)) {
-                request.setAttribute("srtenantDomain", srtenantDomain);
-            }
-            request.setAttribute("sessionDataKey", sessionDataKey);
-            request.getRequestDispatcher("self-registration-complete.jsp").forward(request, response);
         } else {
             if (!StringUtils.isBlank(username)) {
                 request.setAttribute("username", username);

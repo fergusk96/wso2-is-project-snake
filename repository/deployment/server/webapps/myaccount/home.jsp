@@ -7,14 +7,10 @@
 ~    You may not alter or remove any copyright or other notice from copies of this content."
 -->
 
-<%@ page import="org.wso2.carbon.base.ServerConfiguration" %>
-<%@ page import="static org.wso2.carbon.identity.core.util.IdentityCoreConstants.PROXY_CONTEXT_PATH" %>
 <%@ page import="static org.wso2.carbon.identity.core.util.IdentityUtil.getServerURL" %>
 <%@ page import="static org.wso2.carbon.utils.multitenancy.MultitenantConstants.TENANT_AWARE_URL_PREFIX"%>
 <%@ page import="static org.wso2.carbon.utils.multitenancy.MultitenantConstants.SUPER_TENANT_DOMAIN_NAME"%>
 <%@ page import="org.apache.commons.lang.StringUtils" %>
-<%@ page import="static org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils.isOrganizationManagementEnabled"%>
-<%@ page import="static org.wso2.carbon.identity.application.authentication.framework.util.FrameworkUtils.isAdaptiveAuthenticationAvailable"%>
 
 <% String is_cookiepro_enabled = System.getenv("is_cookiepro_enabled"); %>
 <% String initialScriptType = (Boolean.TRUE.toString()).equals(is_cookiepro_enabled) ? "text/plain" : "text/javascript"; %>
@@ -34,7 +30,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"/>
         <meta name="referrer" content="no-referrer" />
 
-        <link href="/myaccount/libs/themes/wso2is/theme.431fb876.min.css" rel="stylesheet" type="text/css"/>
+        <link href="/myaccount/libs/themes/wso2is/theme.89d6b53f.min.css" rel="stylesheet" type="text/css"/>
         <link rel="shortcut icon" href="/myaccount/libs/themes/wso2is/assets/images/branding/favicon.ico" data-react-helmet="true" />
 
         <% if ((Boolean.TRUE.toString()).equals(is_cookiepro_enabled)) { %>
@@ -144,12 +140,33 @@
         <script>
             var contextPathGlobal = "/myaccount/";
             var serverOriginGlobal = "<%=getServerURL("", true, true)%>";
-            var proxyContextPathGlobal = "<%=ServerConfiguration.getInstance().getFirstProperty(PROXY_CONTEXT_PATH)%>";
             var superTenantGlobal = "<%=SUPER_TENANT_DOMAIN_NAME%>";
             var tenantPrefixGlobal = "<%=TENANT_AWARE_URL_PREFIX%>";
-            var isAdaptiveAuthenticationAvailable = JSON.parse("<%= isAdaptiveAuthenticationAvailable() %>");
-            var isOrganizationManagementEnabled = "<%= isOrganizationManagementEnabled() %>" === "true";
         </script>
+
+        <!-- Analytics -->
+    
+    
+        <!-- Start VWO Async SmartCode -->
+        <script type="<%= initialScriptType %>" class="optanon-category-C0002">
+            var vwo_ac_id = ;
+            if (vwo_ac_id !== null && vwo_ac_id) {
+                window._vwo_code = window._vwo_code || (function(){
+                var account_id = vwo_ac_id,
+                settings_tolerance=2000,
+                library_tolerance=2500,
+                use_existing_jquery=false,
+                is_spa=1,
+                hide_element='body',
+
+                /* DO NOT EDIT BELOW THIS LINE */
+                f=false,d=document,code={use_existing_jquery:function(){return use_existing_jquery;},library_tolerance:function(){return library_tolerance;},finish:function(){if(!f){f=true;var a=d.getElementById('_vis_opt_path_hides');if(a)a.parentNode.removeChild(a);}},finished:function(){return f;},load:function(a){var b=d.createElement('script');b.src=a;b.type='text/javascript';b.innerText;b.onerror=function(){_vwo_code.finish();};d.getElementsByTagName('head')[0].appendChild(b);},init:function(){
+                        window.settings_timer=setTimeout('_vwo_code.finish()',settings_tolerance);var a=d.createElement('style'),b=hide_element?hide_element+'{opacity:0 !important;filter:alpha(opacity=0) !important;background:none !important;}':'',h=d.getElementsByTagName('head')[0];a.setAttribute('id','_vis_opt_path_hides');a.setAttribute('type','text/css');if(a.styleSheet)a.styleSheet.cssText=b;else a.appendChild(d.createTextNode(b));h.appendChild(a);this.load('https://dev.visualwebsiteoptimizer.com/j.php?a='+account_id+'&u='+encodeURIComponent(d.URL)+'&f='+(+is_spa)+'&r='+Math.random());return settings_timer; }};window._vwo_settings_timer = code.init(); return code; }());
+            } else {
+                console.warn("VWO is disabled");
+            }
+        </script>
+        <!-- End VWO Async SmartCode -->
 
         <!-- Start of custom stylesheets -->
         <link rel="stylesheet" type="text/css" href="/myaccount/extensions/stylesheet.css"/>
@@ -158,7 +175,7 @@
         <!-- Start of custom scripts added to the head -->
         <script type="text/javascript" src="/myaccount/extensions/head-script.js"></script>
         <!-- End of custom scripts added to the head -->
-    <script defer src="/myaccount/static/js/runtime.a5227638.js?53761c4b6baff193"></script><script defer src="/myaccount/static/js/0.362f8e73.js?53761c4b6baff193"></script><script defer src="/myaccount/static/js/1.ea0a7f0c.js?53761c4b6baff193"></script><script defer src="/myaccount/static/js/vendor.7df571f0.js?53761c4b6baff193"></script><script defer src="/myaccount/static/js/main.e681a239.js?53761c4b6baff193"></script></head>
+    <script defer src="/myaccount/static/js/runtime.b92abbf3.js?7ee3ad9790c2af20"></script><script defer src="/myaccount/static/js/0.1a6cd493.js?7ee3ad9790c2af20"></script><script defer src="/myaccount/static/js/1.78c2a0c4.js?7ee3ad9790c2af20"></script><script defer src="/myaccount/static/js/vendor.87a679d4.js?7ee3ad9790c2af20"></script><script defer src="/myaccount/static/js/main.999f5ad5.js?7ee3ad9790c2af20"></script></head>
     <body>
         <noscript>
             You need to enable JavaScript to run this app.

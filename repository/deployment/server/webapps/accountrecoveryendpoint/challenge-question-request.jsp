@@ -35,9 +35,6 @@
 
 <%
     String username = IdentityManagementEndpointUtil.getStringValue(request.getAttribute("username"));
-    if (StringUtils.isNotBlank(username)) {
-        username = StringEscapeUtils.unescapeJava(username);
-    }
     RetryError errorResponse = (RetryError) request.getAttribute("errorResponse");
 
     if (errorResponse != null) {

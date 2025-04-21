@@ -17,28 +17,19 @@
   --%>
 
 <script src="libs/themes/default/semantic.min.js"></script>
-<script src="libs/tldts-6.1.73.umd.min.js" async></script>
-<script src="util/url-utils.js" async></script>
 
-<%@ page import="org.owasp.encoder.Encode" %>
 <%@ page import="org.apache.commons.lang.StringUtils" %>
 <%@ page import="org.wso2.carbon.identity.application.authentication.endpoint.util.AuthContextAPIClient" %>
-<%@ page import="java.util.List" %>
-<%@ page import="java.util.Arrays" %>
 
-<%
-    // Determining whether the application user is going to login is Console, as the maintenance banner
-    // should only be shown in console related authentication flows.
-    List<String> downtimeBannerEnabledAppList = Arrays.asList("Console");
-    Boolean isDowntimeBannerEnabled = StringUtils.equals("true", application.getInitParameter("isDowntimeBannerEnabled"))
-        && downtimeBannerEnabledAppList.contains(Encode.forJava(request.getParameter("sp")));
+<% 
+    String isDowntimeBannerEnabled = application.getInitParameter("isDowntimeBannerEnabled");
 %>
 
 <script type="text/javascript">
     // Automatically shows on init if the user hasn't already acknowledged cookie usage.
     $(document).ready(function () {
         // downtime-banner.
-        var SHOW_DOWNTIME_BANNER = <%= isDowntimeBannerEnabled %>;
+        var SHOW_DOWNTIME_BANNER = <%= StringUtils.equalsIgnoreCase(isDowntimeBannerEnabled, "true")%>;
 
         if(SHOW_DOWNTIME_BANNER) {
             $("#downtime-banner")
@@ -71,11 +62,10 @@
      */
     function onCookieConsentClear(e) {
 
-        var cookieString = getCookieConsentCookieName() + "=true;max-age=31536000;path=/;Secure";
-        var domain = URLUtils.getDomain(window.location.href);
+        var cookieString = getCookieConsentCookieName() + "=true;max-age=31536000;path=/";
 
-        if (domain) {
-            cookieString = cookieString + ";domain=" + domain;
+        if (extractDomainFromHost()) {
+            cookieString = cookieString + ";domain=" + extractDomainFromHost();
         }
 
         document.cookie = cookieString;
@@ -113,5 +103,32 @@
         }
 
         return false;
+    }
+
+    /**
+     * Extracts the domain from the hostname.
+     * If parsing fails, undefined will be returned.
+     */
+    function extractDomainFromHost() {
+
+        var domain = undefined;
+
+        /**
+        * Extract the domain from the hostname.
+        * Ex: If sub.sample.domain.com is parsed, `domain.com` will be set as the domain.
+        */
+        try {
+            var hostnameTokens = window.location.hostname.split('.');
+
+            if (hostnameTokens.length > 1) {
+                domain = hostnameTokens.slice((hostnameTokens.length -2), hostnameTokens.length).join(".");
+            } else if (hostnameTokens.length == 1) {
+                domain = hostnameTokens[0];
+            }
+        } catch(e) {
+            // Couldn't parse the hostname.
+        }
+
+        return domain;
     }
 </script>

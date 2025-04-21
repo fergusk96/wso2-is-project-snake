@@ -1,19 +1,12 @@
 <%--
-  ~ Copyright (c) 2022-2024, WSO2 LLC. (https://www.wso2.com).
-  ~
-  ~ WSO2 LLC. licenses this file to you under the Apache License,
-  ~ Version 2.0 (the "License"); you may not use this file except
-  ~ in compliance with the License.
-  ~ You may obtain a copy of the License at
-  ~
-  ~ http://www.apache.org/licenses/LICENSE-2.0
-  ~
-  ~ Unless required by applicable law or agreed to in writing,
-  ~ software distributed under the License is distributed on an
-  ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-  ~ KIND, either express or implied.  See the License for the
-  ~ specific language governing permissions and limitations
-  ~ under the License.
+ ~
+ ~ Copyright (c) 2021-2023, WSO2 LLC. (https://www.wso2.com). All Rights Reserved.
+ ~
+ ~ This software is the property of WSO2 LLC. and its suppliers, if any.
+ ~ Dissemination of any information or reproduction of any material contained
+ ~ herein in any form is strictly forbidden, unless permitted by WSO2 expressly.
+ ~ You may not alter or remove any copyright or other notice from copies of this content.
+ ~
 --%>
 
 <%@ page import="org.owasp.encoder.Encode" %>
@@ -45,7 +38,6 @@
     private static final String SERVER_AUTH_URL = "/api/identity/auth/v1.1/";
     private static final String DATA_AUTH_ERROR_URL = "data/AuthenticationError/";
     private static final String REQUEST_PARAM_ERROR_KEY = "errorKey";
-    private static final String APP_DISABLED_I18N_ERROR_KEY = "authentication.flow.app.disabled";
 
     /*
      * This error code should be defined in a public repo along with related logic
@@ -57,7 +49,7 @@
 <%
     String stat = request.getParameter(Constants.STATUS);
     String statusMessage = request.getParameter(Constants.STATUS_MSG);
-    String sp = Encode.forJava(request.getParameter("sp"));
+    String sp = request.getParameter("sp");
     String errorCode = request.getParameter("errorCode");
     String remainingAttempts = request.getParameter("remainingAttempts");
     String applicationAccessURLWithoutEncoding = null;
@@ -154,17 +146,7 @@
         <layout:component componentName="MainSection">
             <div class="ui orange attached segment mt-3">
                 <%
-                    if (IdentityCoreConstants.LOGIN_FAILED_GENERIC_ERROR_CODE.equals(errorCode)) {
-                %>
-                    <h3 class="ui header text-center slogan-message mt-3 mb-6">
-                        <%=i18n(resourceBundle, customText, "unable.to.proceed")%>
-                    </h3>
-
-                    <p class="portal-tagline-description">
-                        <%=i18n(resourceBundle, customText, "login.failed.generic")%>
-                    </p>
-                <%
-                    } else if (StringUtils.equals(errorCode, IdentityCoreConstants.USER_ACCOUNT_LOCKED_ERROR_CODE) &&
+                    if (StringUtils.equals(errorCode, IdentityCoreConstants.USER_ACCOUNT_LOCKED_ERROR_CODE) &&
                             StringUtils.isBlank(remainingAttempts)) {
                 %>
                     <h3 class="ui header text-center slogan-message mt-3 mb-6">
@@ -176,16 +158,6 @@
                         <a href="mailto:<%= StringEscapeUtils.escapeHtml4(supportEmail) %>" target="_blank">
                             <span class="orange-text-color button"><%= StringEscapeUtils.escapeHtml4(supportEmail) %></span>
                         </a> <%=AuthenticationEndpointUtil.i18n(resourceBundle, "for.assistance")%>
-                    </p>
-                <%
-                    } else if (IdentityCoreConstants.USER_ACCOUNT_NOT_CONFIRMED_ERROR_CODE.equals(errorCode)) {
-                %>
-                    <h3 class="ui header text-center slogan-message mt-3 mb-6">
-                        <%=i18n(resourceBundle, customText, "unable.to.proceed")%>
-                    </h3>
-
-                    <p class="portal-tagline-description">
-                        <%=i18n(resourceBundle, customText, "account.confirmation.pending")%>
                     </p>
                 <%
                     } else if (IdentityCoreConstants.USER_ACCOUNT_DISABLED_ERROR_CODE.equals(errorCode)) {
@@ -233,10 +205,7 @@
                         <%=statusMessage%>
                     </p>
 
-                    <% if (
-                           StringUtils.isNotBlank(applicationAccessURLWithoutEncoding)
-                           && !StringUtils.equals(statAuthParam, APP_DISABLED_I18N_ERROR_KEY)
-                       ) { %>
+                    <% if (StringUtils.isNotBlank(applicationAccessURLWithoutEncoding)) { %>
                         <button class="ui primary basic button"
                             onclick="location.href='<%= IdentityManagementEndpointUtil.getURLEncodedCallback(applicationAccessURLWithoutEncoding) %>';">
                             <%= i18n(resourceBundle, customText, "login.button") %>

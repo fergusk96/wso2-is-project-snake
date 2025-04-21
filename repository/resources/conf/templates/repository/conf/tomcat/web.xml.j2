@@ -103,9 +103,6 @@
             <param-value>{{value}}</param-value>
         </init-param>
         {% endfor %}
-        {% if filter.async_supported is defined %}
-            <async-supported>{{filter.async_supported}}</async-supported>
-        {% endif %}
     </filter>
     {% endfor %}
 
@@ -117,12 +114,6 @@
         <dispatcher>{{dispatcher}}</dispatcher>
         {% endfor %}
     </filter-mapping>
-    {% endfor %}
-
-    {% for listener in tomcat.listener %}
-    <listener>
-        <listener-class>{{listener.class}}</listener-class>
-    </listener>
     {% endfor %}
 
     <servlet>

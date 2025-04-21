@@ -82,7 +82,7 @@
     String confirmLiteReg = (String) request.getAttribute("confirmLiteReg");
     String resendUsername = request.getParameter("username");
     String sp = Encode.forJava(request.getParameter("sp"));
-    String spId = Encode.forJava(request.getParameter("spId"));
+    String spId = request.getParameter("spId");
     String sessionDataKey = (String) request.getAttribute("sessionDataKey");
     String applicationAccessURLWithoutEncoding = null;
     String tenantedMyaccountURL = null;
@@ -91,7 +91,6 @@
     boolean accountVerification = false;
     Boolean autoLoginEnabled = false;
     String emailValue = request.getParameter("http://wso2.org/claims/emailaddress");
-    boolean isDetailedResponseEnabled = Boolean.parseBoolean(application.getInitParameter("isSelfRegistrationDetailedApiResponseEnabled"));
 
     /**
     * For SaaS application read from user tenant from parameters.
@@ -125,7 +124,9 @@
     if (StringUtils.isNotBlank(spId)) {
         try {
             ApplicationDataRetrievalClient applicationDataRetrieval = new ApplicationDataRetrievalClient();
-            if (!sp.equals("My Account")) {
+            if (spId.equals("My_Account")) {
+                sp = "My Account";
+            } else {
                 sp = applicationDataRetrieval.getApplicationName(tenantDomain,spId);
             }
         } catch (Exception e) {
@@ -212,13 +213,7 @@
             request.getRequestDispatcher("error.jsp").forward(request, response);
         }
     }
-
-    String userId = (String) request.getAttribute("userId");
 %>
-
-<% if (isDetailedResponseEnabled && StringUtils.isNotBlank(userId)) { %>
-    <input type="hidden" id="userId" name="userId" value="<%= Encode.forHtmlAttribute(userId) %>" />
-<% } %>
 
 <%-- Data for the layout from the page --%>
 <%

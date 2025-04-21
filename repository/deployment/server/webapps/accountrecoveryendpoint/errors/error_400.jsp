@@ -33,7 +33,7 @@
 <jsp:directive.include file="../includes/branding-preferences.jsp"/>
 
 <%
-    String status = IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "error.400");
+    String stat = IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "error.400");
 %>
 
 <%-- Data for the layout from the page --%>
@@ -71,7 +71,7 @@
         <layout:component componentName="MainSection" >
                 <div class="ui orange attached segment mt-3">
                     <h3 class="ui header text-center slogan-message mt-3 mb-2" data-testid="recovery-portal-error-400-page-header">
-                        <%=Encode.forHtml(status)%>
+                        <%=Encode.forHtml(stat)%>
                     </h3>
                 </div>
                 <div class="ui bottom attached warning message">
@@ -79,7 +79,7 @@
                         <%=IdentityManagementEndpointUtil.i18n(recoveryResourceBundle, "need.help.contact.us")%>
                         <a href="mailto:<%= StringEscapeUtils.escapeHtml4(supportEmail) %>" target="_blank">
                         <span class="orange-text-color button"><%= StringEscapeUtils.escapeHtml4(supportEmail) %></span>
-                    </a>
+                    </a> 
                     <%
                         if (config.getServletContext().getResource("extensions/error-tracking-reference.jsp") != null) {
                     %>

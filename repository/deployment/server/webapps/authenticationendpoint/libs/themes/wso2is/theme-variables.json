@@ -703,7 +703,6 @@
     "pageLayoutContentPadding": "25px 30px",
     "loginPortalBackgroundColor": "#F5F6F6",
     "loginPortalProductLogoHeight": "30px",
-    "loginPortalProductLogoMinHeight": "30px",
     "loginPortalProductLogoMaxHeight": "85px",
     "loginPortalLoginCardBackground": "#FFFFFF",
     "loginPortalLoginCardPadding": "3.3rem 3.3rem",
