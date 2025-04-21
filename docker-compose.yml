@@ -9,6 +9,8 @@ services:
       - "9443:9443"
     networks:
       - wso2-network
+    volumes:
+      - ./repository/conf/deployment.toml:/app/repository/conf/deployment.toml
 
 networks:
   wso2-network:
