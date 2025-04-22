@@ -18,6 +18,8 @@ services:
       - "/etc/ngrok/ngrok-secrets.yml,/etc/ngrok/ngrok.yml"
     volumes:
       - ./ngrok:/etc/ngrok
+    networks:
+      - wso2-network
     ports:
       - 4040:4040
     

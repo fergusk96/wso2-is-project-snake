@@ -2,5 +2,5 @@ version: 2
 tunnels:
   wso2-service:
     url: legally-measured-griffon.ngrok-free.app
-    addr: https://localhost:9443
+    addr: https://wso2is:9443
     proto: http
