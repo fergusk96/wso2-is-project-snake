@@ -22,7 +22,21 @@ services:
       - wso2-network
     ports:
       - 4040:4040
-    
+  
+  caddy:
+    build:
+      context: ./caddy
+    expose:
+      - 2019:2019/tcp
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - wso2is
+    networks:
+      - wso2-network
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile
 
 networks:
   wso2-network:
