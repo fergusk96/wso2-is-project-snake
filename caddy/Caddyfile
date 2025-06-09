@@ -1,5 +1,5 @@
-:80 {
-    reverse_proxy / https://wso2is:9443 {
+account.project-snake.win:80 {
+    reverse_proxy https://wso2is:9443 {
         header_up Host {host}
         header_up X-Real-IP {remote}
         header_up X-Forwarded-For {remote}
@@ -8,22 +8,4 @@
             tls_insecure_skip_verify
         }
     }
-}
-
-caddy:443, wso2is:443, myapp:443, localhost:443 {
-    reverse_proxy https://wso2is:9443 {
-        transport http {
-            tls_insecure_skip_verify
-        }
-    }
-    tls internal
-}
-
-legally-measured-griffon.ngrok-free.app:443 {
-    reverse_proxy https://wso2is:9443 {
-        transport http {
-            tls_insecure_skip_verify
-        }
-    }
-    tls internal
 }

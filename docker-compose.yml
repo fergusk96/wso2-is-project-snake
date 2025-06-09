@@ -8,20 +8,14 @@ services:
     volumes:
       - ./repository/conf/deployment.toml:/home/wso2carbon/wso2is-7.0.0/repository/conf/deployment.toml
       - ./repository/components/lib/postgresql-42.7.5.jar:/home/wso2carbon/wso2is-7.0.0/repository/components/lib/postgresql-42.7.5.jar
-  ngrok:
-    image: ngrok/ngrok:latest
+  cloudflared:
+    image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command:
-      - "start"
-      - "--all"
-      - "--config"
-      - "/etc/ngrok/ngrok-secrets.yml,/etc/ngrok/ngrok.yml"
-    volumes:
-      - ./ngrok:/etc/ngrok
+    command: tunnel --no-autoupdate run
+    environment:
+      - TUNNEL_TOKEN=
     networks:
       - wso2-network
-    ports:
-      - 4040:4040
   
   caddy:
     build:
